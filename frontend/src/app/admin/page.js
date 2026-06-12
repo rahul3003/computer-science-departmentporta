@@ -25,12 +25,11 @@ function FieldLabel({ children }) {
   return <label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{children}</label>;
 }
 
-function TextInput({ placeholder, value, onChange, type = 'text', required = false }) {
+function TextInput({ value, onChange, type = 'text', required = false }) {
   return (
     <input
       type={type}
       required={required}
-      placeholder={placeholder}
       value={value}
       onChange={onChange}
       className="w-full bg-white border border-[#ede6dc] px-3.5 py-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
@@ -2088,11 +2087,11 @@ export default function Admin() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <FieldLabel>Document Title *</FieldLabel>
-                            <TextInput required placeholder="e.g. Data Structures Unit-1 Notes" value={notesForm.title} onChange={(e) => setNotesForm({ ...notesForm, title: e.target.value })} />
+                            <TextInput required value={notesForm.title} onChange={(e) => setNotesForm({ ...notesForm, title: e.target.value })} />
                           </div>
                           <div className="space-y-1.5">
                             <FieldLabel>Course Code</FieldLabel>
-                            <TextInput placeholder="e.g. CS-301" value={notesForm.courseCode} onChange={(e) => setNotesForm({ ...notesForm, courseCode: e.target.value })} />
+                            <TextInput value={notesForm.courseCode} onChange={(e) => setNotesForm({ ...notesForm, courseCode: e.target.value })} />
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -2125,11 +2124,11 @@ export default function Admin() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <FieldLabel>Manual Title *</FieldLabel>
-                            <TextInput required placeholder="e.g. PC Hardware & Troubleshooting Manual" value={manualsForm.title} onChange={(e) => setManualsForm({ ...manualsForm, title: e.target.value })} />
+                            <TextInput required value={manualsForm.title} onChange={(e) => setManualsForm({ ...manualsForm, title: e.target.value })} />
                           </div>
                           <div className="space-y-1.5">
                             <FieldLabel>Lab Code</FieldLabel>
-                            <TextInput placeholder="e.g. CSL-307" value={manualsForm.courseCode} onChange={(e) => setManualsForm({ ...manualsForm, courseCode: e.target.value })} />
+                            <TextInput value={manualsForm.courseCode} onChange={(e) => setManualsForm({ ...manualsForm, courseCode: e.target.value })} />
                           </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2172,11 +2171,11 @@ export default function Admin() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <FieldLabel>Syllabus Title *</FieldLabel>
-                            <TextInput required placeholder="e.g. C Programming Syllabus" value={syllabusForm.title} onChange={(e) => setSyllabusForm({ ...syllabusForm, title: e.target.value })} />
+                            <TextInput required value={syllabusForm.title} onChange={(e) => setSyllabusForm({ ...syllabusForm, title: e.target.value })} />
                           </div>
                           <div className="space-y-1.5">
                             <FieldLabel>Subject Code</FieldLabel>
-                            <TextInput placeholder="e.g. CS-101" value={syllabusForm.courseCode} onChange={(e) => setSyllabusForm({ ...syllabusForm, courseCode: e.target.value })} />
+                            <TextInput value={syllabusForm.courseCode} onChange={(e) => setSyllabusForm({ ...syllabusForm, courseCode: e.target.value })} />
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -2256,7 +2255,7 @@ export default function Admin() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5 col-span-2">
                       <FieldLabel>Announcement Title *</FieldLabel>
-                      <TextInput required placeholder="e.g. Infosys Campus Drive Registrations Open" value={announcementForm.title} onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })} />
+                      <TextInput required value={announcementForm.title} onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })} />
                     </div>
                     <div className="space-y-1.5">
                       <FieldLabel>Category</FieldLabel>
@@ -2274,7 +2273,7 @@ export default function Admin() {
                     <textarea
                       required
                       rows={4}
-                      placeholder="Detail the circular requirements, deadlines, and criteria..."
+
                       value={announcementForm.content}
                       onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
                       className="w-full bg-white border border-[#ede6dc] p-4 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] resize-none transition-colors duration-200"
@@ -2282,7 +2281,7 @@ export default function Admin() {
                   </div>
                   <div className="space-y-1.5">
                     <FieldLabel>Attachment PDF Link (Optional)</FieldLabel>
-                    <TextInput type="url" placeholder="e.g. https://storage.example.com/notices/circular.pdf" value={announcementForm.attachmentUrl} onChange={(e) => setAnnouncementForm({ ...announcementForm, attachmentUrl: e.target.value })} />
+                    <TextInput type="url" value={announcementForm.attachmentUrl} onChange={(e) => setAnnouncementForm({ ...announcementForm, attachmentUrl: e.target.value })} />
                   </div>
                   <SubmitButton disabled={submittingAnnouncement}>
                     {submittingAnnouncement ? 'Publishing...' : 'Publish Announcement'}
@@ -2480,7 +2479,6 @@ export default function Admin() {
                       <FieldLabel>Full Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. John Doe" 
                         value={studentForm.name} 
                         onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })} 
                       />
@@ -2490,7 +2488,6 @@ export default function Admin() {
                       <TextInput 
                         required 
                         type="email" 
-                        placeholder="e.g. john.doe@sandur.edu" 
                         value={studentForm.email} 
                         onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} 
                       />
@@ -2499,7 +2496,6 @@ export default function Admin() {
                       <FieldLabel>Enrollment ID *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. SP1CS101" 
                         value={studentForm.enrollmentId} 
                         onChange={(e) => setStudentForm({ ...studentForm, enrollmentId: e.target.value })} 
                       />
@@ -2533,7 +2529,7 @@ export default function Admin() {
                       <TextInput 
                         required 
                         type="password" 
-                        placeholder="Password" 
+
                         value={studentForm.password} 
                         onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })} 
                       />
@@ -2596,7 +2592,6 @@ export default function Admin() {
                       <FieldLabel>Subject Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. Data Structures & Algorithms" 
                         value={subjectForm.name} 
                         onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })} 
                       />
@@ -2605,7 +2600,6 @@ export default function Admin() {
                       <FieldLabel>Course Code *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. CS-301" 
                         value={subjectForm.code} 
                         onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })} 
                       />
@@ -2617,7 +2611,6 @@ export default function Admin() {
                         required
                         min="1"
                         max="10"
-                        placeholder="e.g. 4"
                         value={subjectForm.credits}
                         onChange={(e) => setSubjectForm({ ...subjectForm, credits: parseInt(e.target.value) || 0 })}
                         className="w-full bg-white border border-[#ede6dc] px-3.5 py-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
@@ -2641,7 +2634,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Theory Hours / Week</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 4 hrs/wk" 
                         value={subjectForm.theory} 
                         onChange={(e) => setSubjectForm({ ...subjectForm, theory: e.target.value })} 
                       />
@@ -2649,7 +2641,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Practical Hours / Week</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 2 hrs/wk" 
                         value={subjectForm.practical} 
                         onChange={(e) => setSubjectForm({ ...subjectForm, practical: e.target.value })} 
                       />
@@ -2715,7 +2706,6 @@ export default function Admin() {
                       <FieldLabel>Full Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. Dr. Anil Kumar M.G." 
                         value={facultyForm.name} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })} 
                       />
@@ -2725,7 +2715,6 @@ export default function Admin() {
                       <TextInput 
                         required 
                         type="email" 
-                        placeholder="e.g. anilkumar@sanpoly.edu.in" 
                         value={facultyForm.email} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, email: e.target.value })} 
                       />
@@ -2759,7 +2748,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Qualifications</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. M.Tech, Ph.D. in Computer Science" 
                         value={facultyForm.qualification} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, qualification: e.target.value })} 
                       />
@@ -2767,7 +2755,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Experience</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 18 Years of Academic Experience" 
                         value={facultyForm.experience} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, experience: e.target.value })} 
                       />
@@ -2775,7 +2762,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Office Hours</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. Mon & Wed: 10:00 AM - 12:30 PM" 
                         value={facultyForm.officeHours} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, officeHours: e.target.value })} 
                       />
@@ -2784,7 +2770,7 @@ export default function Admin() {
                       <FieldLabel>Research Publications (separate with ';')</FieldLabel>
                       <textarea
                         rows={2}
-                        placeholder="e.g. Cloud Migration Model; IoT Tracking"
+
                         value={facultyForm.publications}
                         onChange={(e) => setFacultyForm({ ...facultyForm, publications: e.target.value })}
                         className="w-full bg-white border border-[#ede6dc] p-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] resize-none transition-colors duration-200"
@@ -2850,7 +2836,6 @@ export default function Admin() {
                       <FieldLabel>Full Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. John Doe" 
                         value={editingStudent.name} 
                         onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })} 
                       />
@@ -2860,7 +2845,6 @@ export default function Admin() {
                       <TextInput 
                         required 
                         type="email" 
-                        placeholder="e.g. john.doe@sandur.edu" 
                         value={editingStudent.email} 
                         onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })} 
                       />
@@ -2869,7 +2853,6 @@ export default function Admin() {
                       <FieldLabel>Enrollment ID *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. SP1CS101" 
                         value={editingStudent.enrollmentId} 
                         onChange={(e) => setEditingStudent({ ...editingStudent, enrollmentId: e.target.value })} 
                       />
@@ -2902,7 +2885,7 @@ export default function Admin() {
                       <FieldLabel>Change Password (leave blank to keep current)</FieldLabel>
                       <TextInput 
                         type="password" 
-                        placeholder="New Password" 
+
                         value={editingStudent.password || ''} 
                         onChange={(e) => setEditingStudent({ ...editingStudent, password: e.target.value })} 
                       />
@@ -2971,7 +2954,6 @@ export default function Admin() {
                       <FieldLabel>Subject Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. Data Structures & Algorithms" 
                         value={editingSubject.name} 
                         onChange={(e) => setEditingSubject({ ...editingSubject, name: e.target.value })} 
                       />
@@ -2980,7 +2962,6 @@ export default function Admin() {
                       <FieldLabel>Course Code *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. CS-301" 
                         value={editingSubject.code} 
                         onChange={(e) => setEditingSubject({ ...editingSubject, code: e.target.value })} 
                       />
@@ -2992,7 +2973,6 @@ export default function Admin() {
                         required
                         min="1"
                         max="10"
-                        placeholder="e.g. 4"
                         value={editingSubject.credits}
                         onChange={(e) => setEditingSubject({ ...editingSubject, credits: parseInt(e.target.value) || 0 })}
                         className="w-full bg-white border border-[#ede6dc] px-3.5 py-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
@@ -3016,7 +2996,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Theory Hours / Week</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 4 hrs/wk" 
                         value={editingSubject.theory} 
                         onChange={(e) => setEditingSubject({ ...editingSubject, theory: e.target.value })} 
                       />
@@ -3024,7 +3003,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Practical Hours / Week</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 2 hrs/wk" 
                         value={editingSubject.practical} 
                         onChange={(e) => setEditingSubject({ ...editingSubject, practical: e.target.value })} 
                       />
@@ -3093,7 +3071,6 @@ export default function Admin() {
                       <FieldLabel>Full Name *</FieldLabel>
                       <TextInput 
                         required 
-                        placeholder="e.g. Dr. Anil Kumar M.G." 
                         value={editingFaculty.name} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, name: e.target.value })} 
                       />
@@ -3103,7 +3080,6 @@ export default function Admin() {
                       <TextInput 
                         required 
                         type="email" 
-                        placeholder="e.g. anilkumar@sanpoly.edu.in" 
                         value={editingFaculty.email} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, email: e.target.value })} 
                       />
@@ -3137,7 +3113,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Qualifications</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. M.Tech, Ph.D. in Computer Science" 
                         value={editingFaculty.qualification} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, qualification: e.target.value })} 
                       />
@@ -3145,7 +3120,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Experience</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. 18 Years of Academic Experience" 
                         value={editingFaculty.experience} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, experience: e.target.value })} 
                       />
@@ -3153,7 +3127,6 @@ export default function Admin() {
                     <div className="space-y-1">
                       <FieldLabel>Office Hours</FieldLabel>
                       <TextInput 
-                        placeholder="e.g. Mon & Wed: 10:00 AM - 12:30 PM" 
                         value={editingFaculty.officeHours} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, officeHours: e.target.value })} 
                       />
@@ -3162,7 +3135,6 @@ export default function Admin() {
                       <FieldLabel>Research Publications (separate with newlines)</FieldLabel>
                       <textarea
                         rows={2}
-                        placeholder="e.g. Cloud Migration Model&#10;IoT Tracking"
                         value={editingFaculty.publications}
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, publications: e.target.value })}
                         className="w-full bg-white border border-[#ede6dc] p-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] resize-none transition-colors duration-200"

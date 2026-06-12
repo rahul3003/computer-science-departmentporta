@@ -70,11 +70,11 @@ export default function Navbar() {
       setEmail('student@sandur.edu');
       setPassword('password123');
     } else if (role === 'FACULTY') {
-      setEmail('rekha.patil@sandur.edu');
-      setPassword('faculty123password');
+      setEmail('');
+      setPassword('');
     } else {
-      setEmail('admin@sandur.edu');
-      setPassword('adminpassword123');
+      setEmail('');
+      setPassword('');
     }
   };
 

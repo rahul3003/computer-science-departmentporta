@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
+  icons: { icon: "/sandur_logo.png" },
   title: "Computer Science & Engineering | Sandur Polytechnic",
   description: "Official portal of the Computer Science & Engineering department at Sandur Polytechnic. Browse study resources, faculty profiles, announcements, and connect via the student feed.",
 };
