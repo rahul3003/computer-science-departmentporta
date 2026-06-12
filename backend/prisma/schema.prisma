@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Faculty {
+  id                  String   @id @default(uuid())
+  name                String
+  email               String   @unique
+  department          String   // "CSE" or "AI_DS"
+  designation         String
+  qualification       String
+  experience          String   // e.g., "10 years"
+  photoUrl            String?
+  researchPublications String? // JSON or text list of publications
+  resumeUrl           String?
+  officeHours         String?
+  createdAt           DateTime @default(now())
+}
+
+model Resource {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String   // path to the PDF resource
+  category    String   // "NOTES" | "LAB_MANUAL" | "QUESTION_PAPER" | "SYLLABUS"
+  courseCode  String?  // e.g., "CS-302"
+  semester    String   // e.g., "Semester 3"
+  uploadedAt  DateTime @default(now())
+}
+
+model Announcement {
+  id            String   @id @default(uuid())
+  title         String
+  content       String
+  category      String   // "GENERAL" | "EVENT" | "EXAM" | "PLACEMENT"
+  attachmentUrl String?  // Optional PDF link
+  date          DateTime @default(now())
+}
+
+model FeedPost {
+  id          String        @id @default(uuid())
+  title       String?
+  content     String        // text body of the post
+  imageUrl    String?       // Optional image for Instagram-like posts
+  pdfUrl      String?       // Optional PDF link
+  linkUrl     String?       // Optional web reference link
+  authorName  String
+  authorRole  String        // "Student", "Faculty", "Admin"
+  createdAt   DateTime      @default(now())
+  likesCount  Int           @default(0)
+  comments    FeedComment[]
+  poll        Json?         // Optional poll data: { question: String, options: Array<{ text: String, votes: Int }> }
+}
+
+model FeedComment {
+  id         String   @id @default(uuid())
+  postId     String
+  post       FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorName String
+  content    String
+  createdAt  DateTime @default(now())
+}
+
+model TimetableSlot {
+  id        String   @id @default(uuid())
+  semester  String   // e.g., "Semester 3"
+  timeSlot  String   // e.g., "09:00 AM - 10:00 AM"
+  monday    String?
+  tuesday   String?
+  wednesday String?
+  thursday  String?
+  friday    String?
+  createdAt DateTime @default(now())
+}
+
+model Subject {
+  id           String   @id @default(uuid())
+  code         String   @unique // e.g., "CS-301"
+  name         String
+  semester     String   // e.g., "Semester 3"
+  theory       String   // e.g., "4 hrs/wk"
+  practical    String   // e.g., "0 hrs/wk"
+  type         String   // e.g., "Core Theory", "Practical Lab", "Elective"
+  credits      Int      @default(0)
+  createdAt    DateTime @default(now())
+  facultyEmail String?
+  attendance   Attendance[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         String   @default("STUDENT") // "STUDENT" | "FACULTY" | "ADMIN"
+  gender       String?                      // "MALE" | "FEMALE" | "OTHER"
+  enrollmentId String?  @unique // Optional enrollment id
+  semester     String?  // e.g., "Semester 3"
+  group        String?  // e.g., "Group A"
+  createdAt    DateTime @default(now())
+  attendance   Attendance[]
+}
+
+model Attendance {
+  id          String   @id @default(uuid())
+  date        DateTime
+  semester    String
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status      String   // "PRESENT" | "ABSENT"
+  markedBy    String   // Name or email of the marker
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date, subjectId, studentId])
+}
+
