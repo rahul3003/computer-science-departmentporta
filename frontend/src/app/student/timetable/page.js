@@ -34,7 +34,7 @@ export default function Timetable() {
     }
 
     // Fetch dynamic timetable slots from backend, filtered by student's own semester
-    fetch(`http://localhost:5000/api/admin/timetable?semester=${encodeURIComponent(userSemester)}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/timetable?semester=${encodeURIComponent(userSemester)}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -46,7 +46,7 @@ export default function Timetable() {
 
   // Fetch dynamic timetable resource for the selected semester
   useEffect(() => {
-    fetch(`http://localhost:5000/api/resources?category=TIMETABLE&semester=${encodeURIComponent(selectedSem)}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/resources?category=TIMETABLE&semester=${encodeURIComponent(selectedSem)}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

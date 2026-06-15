@@ -72,7 +72,7 @@ export default function Home() {
   useEffect(() => {
     const getFaculty = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/faculty');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/faculty`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
@@ -159,6 +159,14 @@ export default function Home() {
   const handleNextSlide = (e) => {
     e.stopPropagation();
     setActiveSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const handlePrevFaculty = () => {
+    setFacultyIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextFaculty = () => {
+    setFacultyIndex((prev) => Math.min(faculty.length - itemsToShow, prev + 1));
   };
 
   // Helper to trigger open login modal event

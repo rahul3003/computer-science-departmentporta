@@ -29,7 +29,7 @@ export default function StudentAttendance() {
 
           // Fetch real attendance records for this student
           setLoading(true);
-          fetch(`http://localhost:5000/api/attendance/student/${parsed.id}`)
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/attendance/student/${parsed.id}`)
             .then(res => res.json())
             .then(data => {
               if (Array.isArray(data)) {

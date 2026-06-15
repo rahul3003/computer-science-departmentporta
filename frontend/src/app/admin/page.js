@@ -78,7 +78,7 @@ function StatCard({ label, value, icon }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function Admin() {
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   const [activeTab, setActiveTab] = useState('OVERVIEW');
   const [currentUser, setCurrentUser] = useState(null);
@@ -92,7 +92,7 @@ export default function Admin() {
           setCurrentUser(parsed);
           // If faculty, fetch their full profile from the DB
           if (parsed?.role === 'FACULTY' && parsed?.email) {
-            fetch(`http://localhost:5000/api/faculty/by-email/${encodeURIComponent(parsed.email)}`)
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/faculty/by-email/${encodeURIComponent(parsed.email)}`)
               .then(r => r.ok ? r.json() : null)
               .then(profile => { if (profile) setFacultyProfile(profile); })
               .catch(() => {});

@@ -133,7 +133,7 @@ export default function StudentFeed() {
     }
 
     // Fetch dynamic feed posts from backend
-    fetch('http://localhost:5000/api/feed')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/feed`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -183,7 +183,7 @@ export default function StudentFeed() {
   };
 
   const handleLike = (postId) => {
-    fetch(`http://localhost:5000/api/feed/${postId}/like`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/feed/${postId}/like`, {
       method: 'POST'
     })
       .then(res => res.json())
@@ -203,7 +203,7 @@ export default function StudentFeed() {
   };
 
   const handleVote = (postId, optionIdx) => {
-    fetch(`http://localhost:5000/api/feed/${postId}/vote`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/feed/${postId}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ optionIdx })
@@ -236,7 +236,7 @@ export default function StudentFeed() {
     const commentText = commentInputs[postId]?.trim();
     if (!commentText) return;
 
-    fetch(`http://localhost:5000/api/feed/${postId}/comment`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/feed/${postId}/comment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -320,7 +320,7 @@ export default function StudentFeed() {
       linkUrl: newLinkUrl.trim() || null
     };
 
-    fetch('http://localhost:5000/api/feed', {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/feed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -354,7 +354,7 @@ export default function StudentFeed() {
       }
     };
 
-    fetch('http://localhost:5000/api/feed', {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/feed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

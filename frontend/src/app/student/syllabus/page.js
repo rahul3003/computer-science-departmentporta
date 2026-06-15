@@ -34,7 +34,7 @@ export default function Syllabus() {
     }
 
     // Fetch dynamic subjects list from backend, filtered by student's own semester
-    fetch(`http://localhost:5000/api/admin/subjects?semester=${encodeURIComponent(userSemester)}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/subjects?semester=${encodeURIComponent(userSemester)}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -46,7 +46,7 @@ export default function Syllabus() {
 
   // Fetch dynamic syllabus resource for the selected semester
   useEffect(() => {
-    fetch(`http://localhost:5000/api/resources?category=SYLLABUS&semester=${encodeURIComponent(selectedSem)}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/resources?category=SYLLABUS&semester=${encodeURIComponent(selectedSem)}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

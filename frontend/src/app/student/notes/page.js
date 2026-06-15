@@ -34,8 +34,8 @@ export default function Notes() {
 
     // Fetch dynamic notes resources from backend filtered by student's own semester
     const url = userSemester 
-      ? `http://localhost:5000/api/resources?category=NOTES&semester=${encodeURIComponent(userSemester)}`
-      : 'http://localhost:5000/api/resources?category=NOTES';
+      ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/resources?category=NOTES&semester=${encodeURIComponent(userSemester)}`
+      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/resources?category=NOTES`;
 
     fetch(url)
       .then(res => res.json())

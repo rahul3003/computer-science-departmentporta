@@ -10,8 +10,10 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: "http://54.172.233.144:3000",
-  credentials: true
+  origin: '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -44,8 +46,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start listening
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server is running in dev mode on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend server is running in dev mode on http://0.0.0.0:${PORT}`);
 });
 
 module.exports = app;

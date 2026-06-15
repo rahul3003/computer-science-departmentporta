@@ -37,8 +37,8 @@ export default function LabManuals() {
 
     // Fetch dynamic lab manuals resources from backend filtered by student's own semester
     const url = userSemester 
-      ? `http://localhost:5000/api/resources?category=LAB_MANUAL&semester=${encodeURIComponent(userSemester)}`
-      : 'http://localhost:5000/api/resources?category=LAB_MANUAL';
+      ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/resources?category=LAB_MANUAL&semester=${encodeURIComponent(userSemester)}`
+      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/resources?category=LAB_MANUAL`;
 
     fetch(url)
       .then(res => res.json())

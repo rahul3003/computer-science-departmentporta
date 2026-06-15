@@ -34,8 +34,8 @@ export default function QuestionPapers() {
 
     // Fetch dynamic question papers from backend filtered by student's own semester
     const url = userSemester 
-      ? `http://localhost:5000/api/resources?category=QUESTION_PAPER&semester=${encodeURIComponent(userSemester)}`
-      : 'http://localhost:5000/api/resources?category=QUESTION_PAPER';
+      ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/resources?category=QUESTION_PAPER&semester=${encodeURIComponent(userSemester)}`
+      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/resources?category=QUESTION_PAPER`;
 
     fetch(url)
       .then(res => res.json())
