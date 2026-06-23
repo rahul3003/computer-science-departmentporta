@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaChevronRight, FaLock, FaBook, FaFlask, FaFileAlt, FaCalendarAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaChevronRight, FaLock, FaBook, FaFlask, FaFileAlt, FaCalendarAlt, FaBars, FaTimes, FaPencilAlt, FaTrash, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 const mockFacultyList = [
-  { id: 'f1', name: 'Dr. Anil Kumar M.G.', designation: 'HOD & Professor', department: 'CSE', email: 'anilkumar@sanpoly.edu.in' },
-  { id: 'f2', name: 'Mrs. Rekha Patil', designation: 'Assistant Professor', department: 'CSE', email: 'rekhapatil@sanpoly.edu.in' },
-  { id: 'f3', name: 'Mr. Shivasharanappa K.', designation: 'Associate Professor & Lead', department: 'AI_DS', email: 'shiva.k@sanpoly.edu.in' },
-  { id: 'f4', name: 'Miss. Deepika R.', designation: 'Assistant Professor', department: 'AI_DS', email: 'deepikar@sanpoly.edu.in' },
+  { id: 'f1', name: 'Dr. Anil Kumar M.G.', designation: 'Hod', department: 'CSE', email: 'anilkumar@sanpoly.edu.in' },
+  { id: 'f2', name: 'Mrs. Rekha Patil', designation: 'Lecturer', department: 'CSE', email: 'rekhapatil@sanpoly.edu.in' },
+  { id: 'f3', name: 'Mr. Shivasharanappa K.', designation: 'Senior Lecturer', department: 'AI_DS', email: 'shiva.k@sanpoly.edu.in' },
+  { id: 'f4', name: 'Miss. Deepika R.', designation: 'Asst Lecturer', department: 'AI_DS', email: 'deepikar@sanpoly.edu.in' },
   { id: 'f5', name: 'Mr. Nagaraj Gowda', designation: 'Senior Lecturer', department: 'CSE', email: 'nagarajg@sanpoly.edu.in' },
 ];
 
@@ -128,7 +128,7 @@ export default function Admin() {
   const [timetableForm, setTimetableForm] = useState({ semester: 'Semester 1', effectiveFrom: '', file: null });
   const [syllabusForm, setSyllabusForm] = useState({ title: '', semester: 'Semester 1', courseCode: '', file: null });
   const [announcementForm, setAnnouncementForm] = useState({ title: '', category: 'GENERAL', content: '', attachmentUrl: '' });
-  const [facultyForm, setFacultyForm] = useState({ name: '', email: '', department: 'CSE', designation: 'Assistant Professor', qualification: '', experience: '', officeHours: '', publications: '' });
+  const [facultyForm, setFacultyForm] = useState({ name: '', email: '', department: 'CSE', designation: 'Lecturer', qualification: '', experience: '', officeHours: '', publications: '' });
 
   // Class Manager states
   const [selectedSemester, setSelectedSemester] = useState(null);
@@ -157,6 +157,153 @@ export default function Admin() {
   const [submittingFaculty, setSubmittingFaculty] = useState(false);
   const [submittingStudent, setSubmittingStudent] = useState(false);
   const [submittingSubject, setSubmittingSubject] = useState(false);
+  const [dashboardAttendanceSem, setDashboardAttendanceSem] = useState('Semester 3');
+  const [dashAttendanceDate, setDashAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dashAttendanceSubjectId, setDashAttendanceSubjectId] = useState('');
+  const [dailyAttendanceData, setDailyAttendanceData] = useState(null);
+  const [loadingDailyAttendance, setLoadingDailyAttendance] = useState(false);
+
+  // Bulk Student Excel Import states
+  const [addStudentMode, setAddStudentMode] = useState('manual'); // 'manual' | 'excel'
+  const [excelFile, setExcelFile] = useState(null);
+  const [importMode, setImportMode] = useState('merge'); // 'merge' | 'clear'
+  const [importStatus, setImportStatus] = useState('idle'); // 'idle' | 'uploading' | 'success' | 'error'
+  const [importSummary, setImportSummary] = useState(null);
+
+  // Reset Excel states when modal closes
+  useEffect(() => {
+    if (!isAddStudentModalOpen) {
+      setAddStudentMode('manual');
+      setExcelFile(null);
+      setImportMode('merge');
+      setImportStatus('idle');
+      setImportSummary(null);
+    }
+  }, [isAddStudentModalOpen]);
+
+  // Faculty Photo Upload States
+  const [facultyPhotoFile, setFacultyPhotoFile] = useState(null);
+  const [editingFacultyPhotoFile, setEditingFacultyPhotoFile] = useState(null);
+  const [isChangePhotoModalOpen, setIsChangePhotoModalOpen] = useState(false);
+  const [changePhotoFile, setChangePhotoFile] = useState(null);
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+
+  // Reset Faculty Photo states when modals close
+  useEffect(() => {
+    if (!isAddFacultyModalOpen) {
+      setFacultyPhotoFile(null);
+    }
+  }, [isAddFacultyModalOpen]);
+
+  useEffect(() => {
+    if (!isEditFacultyModalOpen) {
+      setEditingFacultyPhotoFile(null);
+    }
+  }, [isEditFacultyModalOpen]);
+
+  // Custom Timetable Grid States & Functions
+  const [timetableMode, setTimetableMode] = useState('upload'); // 'upload' | 'customize'
+  const [selectedTimetableSem, setSelectedTimetableSem] = useState('Semester 1');
+  const [customSlots, setCustomSlots] = useState([]);
+  const [newSlotForm, setNewSlotForm] = useState({ timeSlot: '', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' });
+  const [isSavingSlot, setIsSavingSlot] = useState(false);
+
+  // Student Passwords Visibility States
+  const [showAddStudentPassword, setShowAddStudentPassword] = useState(false);
+  const [showEditStudentPassword, setShowEditStudentPassword] = useState(false);
+
+  const fetchCustomSlots = async (sem) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/timetable?semester=${encodeURIComponent(sem)}`);
+      if (res.ok) {
+        setCustomSlots(await res.json());
+      }
+    } catch (err) {
+      console.error('Error fetching custom slots:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'UPLOADS' && uploadSubTab === 'TIMETABLE' && timetableMode === 'customize') {
+      fetchCustomSlots(selectedTimetableSem);
+    }
+  }, [activeTab, uploadSubTab, timetableMode, selectedTimetableSem]);
+
+  const handleCreateSlot = async (e) => {
+    e.preventDefault();
+    if (!newSlotForm.timeSlot) {
+      triggerNotification('Time slot name is required (e.g. 09:00 AM - 10:00 AM).');
+      return;
+    }
+    setIsSavingSlot(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/timetable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          semester: selectedTimetableSem,
+          ...newSlotForm
+        })
+      });
+      if (res.ok) {
+        const newSlot = await res.json();
+        setCustomSlots([...customSlots, newSlot]);
+        setNewSlotForm({ timeSlot: '', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' });
+        triggerNotification('✓ Timetable row added successfully.');
+      } else {
+        triggerNotification('✗ Failed to add timetable row.');
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification('✗ Network error saving timetable row.');
+    } finally {
+      setIsSavingSlot(false);
+    }
+  };
+
+  const handleUpdateSlot = async (slotId, updatedData) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/timetable/${slotId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      });
+      if (res.ok) {
+        triggerNotification('✓ Timetable slot updated successfully.');
+        setCustomSlots(customSlots.map(s => s.id === slotId ? { ...s, ...updatedData } : s));
+      } else {
+        triggerNotification('✗ Failed to update slot.');
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification('✗ Network error updating slot.');
+    }
+  };
+
+  const handleDeleteSlot = async (slotId) => {
+    askConfirmation(
+      'Delete Timetable Slot',
+      'Are you sure you want to delete this time slot row? This will update the student view immediately.',
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/admin/timetable/${slotId}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            setCustomSlots(customSlots.filter(s => s.id !== slotId));
+            triggerNotification('✓ Timetable slot row deleted.');
+          } else {
+            triggerNotification('✗ Failed to delete slot.');
+          }
+        } catch (err) {
+          console.error(err);
+          triggerNotification('✗ Network error deleting slot.');
+        }
+      },
+      'Delete Row',
+      'Cancel'
+    );
+  };
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -219,6 +366,14 @@ export default function Admin() {
       'Manuals': 0,
       'Exam Papers': 0,
       'Syllabus': 0
+    },
+    attendanceStats: {
+      'Semester 1': { present: 0, absent: 0 },
+      'Semester 2': { present: 0, absent: 0 },
+      'Semester 3': { present: 0, absent: 0 },
+      'Semester 4': { present: 0, absent: 0 },
+      'Semester 5': { present: 0, absent: 0 },
+      'Semester 6': { present: 0, absent: 0 }
     }
   });
   const [loading, setLoading] = useState(true);
@@ -275,19 +430,22 @@ export default function Admin() {
     }
   };
 
-  const handleLoadAttendanceRoster = async () => {
-    if (!attendanceSubjectId) {
+  const handleLoadAttendanceRoster = async (overrideSubId, overrideSem, overrideDate) => {
+    const subId = overrideSubId || attendanceSubjectId;
+    const date = overrideDate || attendanceDate;
+    
+    if (!subId) {
       triggerNotification('✗ Please select a subject.');
       return;
     }
     setLoadingAttendanceStudents(true);
     try {
-      const sem = currentUser?.role === 'FACULTY' 
-        ? subjectsList.find(s => s.id === attendanceSubjectId)?.semester 
-        : attendanceSemester;
+      const sem = overrideSem || (currentUser?.role === 'FACULTY' 
+        ? subjectsList.find(s => s.id === subId)?.semester 
+        : attendanceSemester);
 
       const studentsRes = await fetch(`${API_BASE}/api/admin/semesters/${encodeURIComponent(sem)}/students`);
-      const existingAttendanceRes = await fetch(`${API_BASE}/api/attendance?date=${attendanceDate}&subjectId=${attendanceSubjectId}`);
+      const existingAttendanceRes = await fetch(`${API_BASE}/api/attendance?date=${date}&subjectId=${subId}`);
       
       if (studentsRes.ok && existingAttendanceRes.ok) {
         const students = await studentsRes.json();
@@ -316,6 +474,42 @@ export default function Admin() {
     fetchData();
     fetchSubjects();
   }, []);
+
+  useEffect(() => {
+    const filtered = subjectsList.filter(sub => sub.semester === dashboardAttendanceSem);
+    if (filtered.length > 0) {
+      if (!filtered.some(f => f.id === dashAttendanceSubjectId)) {
+        setDashAttendanceSubjectId(filtered[0].id);
+      }
+    } else {
+      setDashAttendanceSubjectId('');
+    }
+  }, [dashboardAttendanceSem, subjectsList]);
+
+  const fetchDailyAttendanceStats = async () => {
+    if (!dashAttendanceSubjectId) {
+      setDailyAttendanceData(null);
+      return;
+    }
+    setLoadingDailyAttendance(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/daily-attendance-stats?date=${dashAttendanceDate}&subjectId=${dashAttendanceSubjectId}`);
+      if (res.ok) {
+        setDailyAttendanceData(await res.json());
+      } else {
+        setDailyAttendanceData(null);
+      }
+    } catch (err) {
+      console.error('Error fetching daily attendance stats:', err);
+      setDailyAttendanceData(null);
+    } finally {
+      setLoadingDailyAttendance(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDailyAttendanceStats();
+  }, [dashAttendanceDate, dashAttendanceSubjectId]);
 
 
 
@@ -510,25 +704,31 @@ export default function Admin() {
     if (!facultyForm.name || !facultyForm.email) return;
     setSubmittingFaculty(true);
     try {
+      const formData = new FormData();
+      formData.append('name', facultyForm.name);
+      formData.append('email', facultyForm.email);
+      formData.append('department', facultyForm.department);
+      formData.append('designation', facultyForm.designation);
+      formData.append('qualification', facultyForm.qualification || 'B.E., M.Tech');
+      formData.append('experience', facultyForm.experience || '2 Years of Experience');
+      formData.append('officeHours', facultyForm.officeHours || 'Daily: 10:00 AM - 11:00 AM');
+      formData.append('researchPublications', facultyForm.publications ? JSON.stringify(facultyForm.publications.split('\n').filter(Boolean)) : JSON.stringify([]));
+      
+      if (facultyPhotoFile) {
+        formData.append('photo', facultyPhotoFile);
+      }
+
       const res = await fetch(`${API_BASE}/api/faculty`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: facultyForm.name,
-          email: facultyForm.email,
-          department: facultyForm.department,
-          designation: facultyForm.designation,
-          qualification: facultyForm.qualification || 'B.E., M.Tech',
-          experience: facultyForm.experience || '2 Years of Experience',
-          officeHours: facultyForm.officeHours || 'Daily: 10:00 AM - 11:00 AM',
-          researchPublications: facultyForm.publications ? JSON.stringify(facultyForm.publications.split('\n').filter(Boolean)) : JSON.stringify([])
-        })
+        body: formData
       });
       if (res.ok) {
         const newFac = await res.json();
         setFacultyList([newFac, ...facultyList]);
         triggerNotification(`✓ Faculty profile for "${facultyForm.name}" created.`);
-        setFacultyForm({ name: '', email: '', department: 'CSE', designation: 'Assistant Professor', qualification: '', experience: '', officeHours: '', publications: '' });
+        setFacultyForm({ name: '', email: '', department: 'CSE', designation: 'Lecturer', qualification: '', experience: '', officeHours: '', publications: '' });
+        setFacultyPhotoFile(null);
+        setIsAddFacultyModalOpen(false);
         
         // Refresh overview stats
         const statsRes = await fetch(`${API_BASE}/api/admin/stats`);
@@ -654,6 +854,60 @@ export default function Admin() {
     }
   };
 
+  const handleExcelImport = async (e) => {
+    e.preventDefault();
+    if (!excelFile || !selectedSemester) return;
+    
+    const executeImport = async () => {
+      setImportStatus('uploading');
+      setImportSummary(null);
+
+      const formData = new FormData();
+      formData.append('file', excelFile);
+      formData.append('semester', selectedSemester);
+      formData.append('mode', importMode);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/students/import`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setImportSummary(data);
+          setImportStatus('success');
+          triggerNotification(`✓ Excel import completed: ${data.successCount} added, ${data.updatedCount} updated.`);
+          // Refresh student roster
+          fetchSemesterStudents(selectedSemester);
+          // Refresh global dashboard stats
+          const statsRes = await fetch(`${API_BASE}/api/admin/stats`);
+          if (statsRes.ok) setStats(await statsRes.json());
+        } else {
+          const errData = await res.json();
+          triggerNotification(`✗ Import failed: ${errData.error || 'Server error'}`);
+          setImportStatus('error');
+        }
+      } catch (err) {
+        console.error(err);
+        triggerNotification(`✗ Network error performing bulk import.`);
+        setImportStatus('error');
+      }
+    };
+
+    if (importMode === 'clear') {
+      askConfirmation(
+        '⚠️ Dangerous Action: Clear Semester Roster',
+        `This will permanently delete all students registered in ${selectedSemester} and wipe out their historical attendance records. Are you absolutely sure?`,
+        executeImport,
+        'Wipe and Import',
+        'Cancel'
+      );
+    } else {
+      executeImport();
+    }
+  };
+
   const handleImpersonateStudent = (student) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('user', JSON.stringify({
@@ -715,19 +969,23 @@ export default function Admin() {
       async () => {
         setSubmittingFaculty(true);
         try {
+          const formData = new FormData();
+          formData.append('name', editingFaculty.name);
+          formData.append('email', editingFaculty.email);
+          formData.append('department', editingFaculty.department);
+          formData.append('designation', editingFaculty.designation);
+          formData.append('qualification', editingFaculty.qualification || 'B.E., M.Tech');
+          formData.append('experience', editingFaculty.experience || '2 Years of Experience');
+          formData.append('officeHours', editingFaculty.officeHours || 'Daily: 10:00 AM - 11:00 AM');
+          formData.append('researchPublications', editingFaculty.publications ? JSON.stringify(editingFaculty.publications.split('\n').filter(Boolean)) : JSON.stringify([]));
+          
+          if (editingFacultyPhotoFile) {
+            formData.append('photo', editingFacultyPhotoFile);
+          }
+
           const res = await fetch(`${API_BASE}/api/faculty/${editingFaculty.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: editingFaculty.name,
-              email: editingFaculty.email,
-              department: editingFaculty.department,
-              designation: editingFaculty.designation,
-              qualification: editingFaculty.qualification || 'B.E., M.Tech',
-              experience: editingFaculty.experience || '2 Years of Experience',
-              officeHours: editingFaculty.officeHours || 'Daily: 10:00 AM - 11:00 AM',
-              researchPublications: editingFaculty.publications ? JSON.stringify(editingFaculty.publications.split('\n').filter(Boolean)) : JSON.stringify([])
-            })
+            body: formData
           });
           if (res.ok) {
             const updated = await res.json();
@@ -735,6 +993,7 @@ export default function Admin() {
             triggerNotification(`✓ Faculty profile for "${editingFaculty.name}" updated successfully.`);
             setIsEditFacultyModalOpen(false);
             setEditingFaculty(null);
+            setEditingFacultyPhotoFile(null);
             
             // Refresh stats
             const statsRes = await fetch(`${API_BASE}/api/admin/stats`);
@@ -751,6 +1010,60 @@ export default function Admin() {
         }
       }
     );
+  };
+
+  const handleFacultyChangePhoto = async (e) => {
+    e.preventDefault();
+    if (!changePhotoFile) return;
+    setSubmittingPhoto(true);
+    try {
+      const activeFaculty = facultyList.find(f => f.email === currentUser?.email);
+      if (!activeFaculty) {
+        triggerNotification('✗ Faculty profile not found.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('photo', changePhotoFile);
+      formData.append('name', activeFaculty.name);
+      formData.append('email', activeFaculty.email);
+      formData.append('department', activeFaculty.department);
+      formData.append('designation', activeFaculty.designation);
+      formData.append('qualification', activeFaculty.qualification);
+      formData.append('experience', activeFaculty.experience);
+      formData.append('officeHours', activeFaculty.officeHours);
+
+      const res = await fetch(`${API_BASE}/api/faculty/${activeFaculty.id}`, {
+        method: 'PUT',
+        body: formData
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setFacultyList(facultyList.map(f => f.id === updated.id ? updated : f));
+        
+        // Update local session
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const userObj = JSON.parse(stored);
+          userObj.photoUrl = updated.photoUrl;
+          localStorage.setItem('user', JSON.stringify(userObj));
+          setCurrentUser(userObj);
+        }
+
+        triggerNotification('✓ Profile photo updated successfully.');
+        setIsChangePhotoModalOpen(false);
+        setChangePhotoFile(null);
+      } else {
+        const data = await res.json();
+        triggerNotification(`✗ Failed to update photo: ${data.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification('✗ Network error updating profile photo.');
+    } finally {
+      setSubmittingPhoto(false);
+    }
   };
 
   const handleSubjectUpdate = async (e) => {
@@ -958,6 +1271,15 @@ export default function Admin() {
     { label: 'Syllabus', count: stats?.resourceCategoryDistribution?.['Syllabus'] || 0, color: '#d7ccc8' }
   ];
   const maxCount = Math.max(...barData.map(d => d.count), 1);
+
+  const dailyTotal = dailyAttendanceData ? (dailyAttendanceData.present + dailyAttendanceData.absent) : 0;
+  const dailyTotalStudents = dailyAttendanceData ? dailyAttendanceData.totalStudents : (stats?.semesterDistribution?.[dashboardAttendanceSem] || 0);
+  const dailyPresent = dailyAttendanceData ? dailyAttendanceData.present : 0;
+  const dailyAbsent = dailyAttendanceData ? dailyAttendanceData.absent : 0;
+  const dailyPresentPercent = dailyTotalStudents > 0 ? Math.round((dailyPresent / dailyTotalStudents) * 100) : 0;
+  const dailyAbsentPercent = dailyTotalStudents > 0 ? Math.round((dailyAbsent / dailyTotalStudents) * 100) : 0;
+  const dailyUnmarkedPercent = dailyTotalStudents > 0 ? Math.max(0, 100 - dailyPresentPercent - dailyAbsentPercent) : 100;
+  const dailyUnmarked = Math.max(0, dailyTotalStudents - dailyPresent - dailyAbsent);
 
   const tabs = [
     { id: 'OVERVIEW', label: 'Dashboard Overview', icon: (
@@ -1348,92 +1670,318 @@ export default function Admin() {
                     </div>
 
                   </div>
+
+                  {/* Attendance Overview Chart */}
+                  <div className="bg-white border border-[#ede6dc]/70 rounded-2xl shadow-sm p-6 space-y-5 text-[#2d1b18]">
+                    
+                    {/* Header Row */}
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-[#ede6dc]/45 pb-4 gap-4">
+                      <div className="flex flex-col">
+                        <h3 className="text-xs font-black text-[#2d1b18] uppercase tracking-wider flex items-center space-x-1.5">
+                          <svg className="w-4 h-4 text-[#4a2c2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          <span>Daily Attendance Monitor</span>
+                        </h3>
+                        <span className="text-[9px] text-slate-400 font-semibold mt-0.5">Track present vs absent count for any specific date & subject</span>
+                      </div>
+
+                      {/* Dynamic Parameters Selectors */}
+                      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        {/* Date Picker */}
+                        <div className="flex flex-col space-y-0.5 min-w-[120px]">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Select Date</label>
+                          <input
+                            type="date"
+                            value={dashAttendanceDate}
+                            onChange={(e) => setDashAttendanceDate(e.target.value)}
+                            className="bg-[#faf7f2] border border-[#ede6dc] px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#4a2c2a] focus:outline-none focus:border-[#4a2c2a] cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Semester Select */}
+                        <div className="flex flex-col space-y-0.5 min-w-[110px]">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Select Semester</label>
+                          <select
+                            value={dashboardAttendanceSem}
+                            onChange={(e) => setDashboardAttendanceSem(e.target.value)}
+                            className="bg-[#faf7f2] border border-[#ede6dc] px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#4a2c2a] focus:outline-none focus:border-[#4a2c2a] cursor-pointer"
+                          >
+                            <option value="Semester 1">Semester 1</option>
+                            <option value="Semester 2">Semester 2</option>
+                            <option value="Semester 3">Semester 3</option>
+                            <option value="Semester 4">Semester 4</option>
+                            <option value="Semester 5">Semester 5</option>
+                            <option value="Semester 6">Semester 6</option>
+                          </select>
+                        </div>
+
+                        {/* Subject Select */}
+                        <div className="flex flex-col space-y-0.5 min-w-[150px] flex-1 sm:flex-none">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Select Subject</label>
+                          <select
+                            value={dashAttendanceSubjectId}
+                            onChange={(e) => setDashAttendanceSubjectId(e.target.value)}
+                            className="bg-[#faf7f2] border border-[#ede6dc] px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#4a2c2a] focus:outline-none focus:border-[#4a2c2a] cursor-pointer w-full"
+                          >
+                            <option value="">-- No Subject Selected --</option>
+                            {subjectsList
+                              .filter(sub => sub.semester === dashboardAttendanceSem)
+                              .map(sub => (
+                                <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chart / Report Content */}
+                    {loadingDailyAttendance ? (
+                      <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
+                        <div className="w-8 h-8 rounded-full border-4 border-[#4a2c2a]/20 border-t-[#4a2c2a] animate-spin"></div>
+                        <span className="text-xs font-semibold">Loading stats...</span>
+                      </div>
+                    ) : !dashAttendanceSubjectId ? (
+                      <div className="py-10 text-center bg-[#faf7f2]/30 border border-dashed border-[#ede6dc] rounded-2xl">
+                        <span className="text-2xl">📚</span>
+                        <p className="text-xs text-slate-400 font-bold mt-2">Please select a subject module to monitor attendance.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                        
+                        {/* Ring Chart (Left Side) */}
+                        <div className="md:col-span-4 flex flex-col items-center justify-center text-center p-5 bg-[#faf7f2]/40 border border-[#ede6dc]/40 rounded-2xl select-none">
+                          <div className="relative w-36 h-36">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              {/* Track */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1ece3" strokeWidth="9" />
+                              {/* Present Ring (Green) */}
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                fill="transparent"
+                                stroke="#10b981"
+                                strokeWidth="9"
+                                strokeDasharray={2 * Math.PI * 40}
+                                strokeDashoffset={2 * Math.PI * 40 * (1 - dailyPresentPercent / 100)}
+                                strokeLinecap="round"
+                                transform="rotate(-90 50 50)"
+                                className="transition-all duration-500 ease-out"
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-2xl font-black text-[#2d1b18]">{dailyPresentPercent}%</span>
+                              <span className="text-[8px] font-extrabold text-emerald-600 uppercase tracking-widest leading-none mt-0.5">Present Rate</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 text-xs font-bold text-slate-500">
+                            Class Ratio: <span className="text-[#2d1b18] font-black">{dailyPresent} / {dailyTotalStudents}</span> present
+                          </div>
+                        </div>
+
+                        {/* Breakdown Bars and Action (Right Side) */}
+                        <div className="md:col-span-8 space-y-6">
+                          
+                          {/* Main Text Ratio */}
+                          <div className="bg-[#faf7f2]/60 border border-[#ede6dc]/80 rounded-2xl p-4 space-y-1">
+                            <span className="text-[8px] font-extrabold text-[#4a2c2a] uppercase tracking-wider">Attendance Status</span>
+                            <p className="text-sm font-bold leading-normal text-[#2d1b18]">
+                              Out of <strong className="text-[#4a2c2a] font-extrabold text-base">{dailyTotalStudents}</strong> total enrolled students, 
+                              there are <strong className="text-emerald-600 font-extrabold text-base">{dailyPresent}</strong> present and 
+                              <strong className="text-rose-600 font-extrabold text-base">{dailyAbsent}</strong> absent on this date.
+                              {dailyUnmarked > 0 && (
+                                <span className="block text-xs font-medium text-slate-500 mt-1">
+                                  ⚠️ Note: {dailyUnmarked} students are not yet marked.
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Present vs Absent vs Unmarked Combined Progress Bar */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              <span>Attendance Distribution</span>
+                              <span>Ratio Profile</span>
+                            </div>
+                            <div className="w-full h-5 bg-[#f1ece3] rounded-full overflow-hidden flex border border-[#ede6dc]/80">
+                              {/* Present Section */}
+                              {dailyPresentPercent > 0 && (
+                                <div
+                                  style={{ width: `${dailyPresentPercent}%` }}
+                                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500 flex items-center justify-center text-[9px] font-black text-white"
+                                  title={`Present: ${dailyPresentPercent}%`}
+                                >
+                                  {dailyPresentPercent >= 12 && `${dailyPresentPercent}%`}
+                                </div>
+                              )}
+                              {/* Absent Section */}
+                              {dailyAbsentPercent > 0 && (
+                                <div
+                                  style={{ width: `${dailyAbsentPercent}%` }}
+                                  className="h-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-500 flex items-center justify-center text-[9px] font-black text-white"
+                                  title={`Absent: ${dailyAbsentPercent}%`}
+                                >
+                                  {dailyAbsentPercent >= 12 && `${dailyAbsentPercent}%`}
+                                </div>
+                              )}
+                              {/* Unmarked Section */}
+                              {dailyUnmarkedPercent > 0 && (
+                                <div
+                                  style={{ width: `${dailyUnmarkedPercent}%` }}
+                                  className="h-full bg-[#e2dcd0] transition-all duration-500 flex items-center justify-center text-[9px] font-bold text-slate-500"
+                                  title={`Unmarked: ${dailyUnmarkedPercent}%`}
+                                >
+                                  {dailyUnmarkedPercent >= 12 && `Unmarked`}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Legend labels */}
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-bold text-slate-400 pt-1">
+                              <span className="flex items-center space-x-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span>
+                                <span>Present ({dailyPresent})</span>
+                              </span>
+                              <span className="flex items-center space-x-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 block"></span>
+                                <span>Absent ({dailyAbsent})</span>
+                              </span>
+                              <span className="flex items-center space-x-1.5">
+                                <span className="w-2.5 h-2.5 bg-[#e2dcd0] rounded-sm block"></span>
+                                <span>Unmarked ({dailyUnmarked})</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quick Modification Link */}
+                          <div className="pt-2 flex">
+                            <button
+                              onClick={() => {
+                                setAttendanceSemester(dashboardAttendanceSem);
+                                setAttendanceSubjectId(dashAttendanceSubjectId);
+                                setAttendanceDate(dashAttendanceDate);
+                                setActiveTab('ATTENDANCE');
+                                handleLoadAttendanceRoster(dashAttendanceSubjectId, dashboardAttendanceSem, dashAttendanceDate);
+                              }}
+                              className="px-6 py-2.5 rounded-xl bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer shadow flex items-center space-x-2 border border-white/5 active:scale-[0.98]"
+                            >
+                              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              <span>{dailyTotal > 0 ? 'Modify/Edit Attendance' : 'Mark Attendance for this Class'}</span>
+                            </button>
+                          </div>
+                          
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* ── Tab: OVERVIEW (Faculty Profile) ───────────────── */}
-              {activeTab === 'OVERVIEW' && currentUser?.role === 'FACULTY' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  {/* Faculty Profile Card */}
-                  <div className="bg-white border border-[#ede6dc]/70 rounded-3xl p-6 sm:p-8 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-start md:space-x-8 space-y-6 md:space-y-0">
-                      {/* Left: Avatar/Photo */}
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className="w-28 h-28 rounded-2xl bg-gradient-to-tr from-[#4a2c2a] to-[#8d6e63] flex items-center justify-center text-white text-3xl font-black shadow-md">
-                          {currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'RP'}
+              {activeTab === 'OVERVIEW' && currentUser?.role === 'FACULTY' && (() => {
+                const facultyProfile = facultyList.find(f => f.email === currentUser?.email) || {
+                  name: currentUser?.name || 'Mrs. Rekha Patil',
+                  email: currentUser?.email || 'rekha.patil@sandur.edu',
+                  designation: 'Lecturer',
+                  qualification: 'M.Tech in Computer Science',
+                  experience: '12 Years of Experience',
+                  officeHours: 'Mon, Wed, Fri: 11:00 AM - 01:00 PM',
+                  researchPublications: JSON.stringify(['A Study on Cloud Security models', 'Machine learning in education systems']),
+                  photoUrl: currentUser?.photoUrl || null
+                };
+                return (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* Faculty Profile Card */}
+                    <div className="bg-white border border-[#ede6dc]/70 rounded-3xl p-6 sm:p-8 shadow-sm">
+                      <div className="flex flex-col md:flex-row md:items-start md:space-x-8 space-y-6 md:space-y-0">
+                        {/* Left: Avatar/Photo */}
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#4a2c2a] to-[#8d6e63] flex items-center justify-center text-white text-3xl font-black shadow-md bg-cover bg-center">
+                            {facultyProfile.photoUrl && !facultyProfile.photoUrl.includes('/placeholder/') ? (
+                              <img 
+                                src={facultyProfile.photoUrl} 
+                                alt={facultyProfile.name} 
+                                className="w-full h-full object-cover" 
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement.innerText = currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'RP';
+                                }}
+                              />
+                            ) : (
+                              currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'RP'
+                            )}
+                          </div>
+                          <span className="mt-3.5 px-3 py-1 rounded-full bg-[#f3ede2] border border-[#ede6dc] text-[#4a2c2a] text-[10px] font-bold uppercase tracking-wider">
+                            Faculty Member
+                          </span>
+                          <button
+                            onClick={() => setIsChangePhotoModalOpen(true)}
+                            className="mt-2.5 px-3 py-1.5 rounded-xl border border-[#ede6dc] bg-white hover:bg-[#faf7f2] text-[#4a2c2a] hover:text-[#5d3a37] text-[10px] font-bold transition-all duration-200 cursor-pointer flex items-center space-x-1 shadow-sm"
+                          >
+                            <svg className="w-3.5 h-3.5 text-[#4a2c2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Change Photo</span>
+                          </button>
                         </div>
-                        <span className="mt-3.5 px-3 py-1 rounded-full bg-[#f3ede2] border border-[#ede6dc] text-[#4a2c2a] text-[10px] font-bold uppercase tracking-wider">
-                          Faculty Member
-                        </span>
-                      </div>
 
-                      {/* Right: Details */}
-                      <div className="flex-1 space-y-5 text-left">
-                        <div className="border-b border-[#ede6dc]/60 pb-3">
-                          <h2 className="text-xl font-black text-[#2d1b18]">{currentUser?.name || 'Mrs. Rekha Patil'}</h2>
-                          <p className="text-xs text-[#4a2c2a] font-bold mt-0.5">Department of Computer Science & Engineering</p>
+                        {/* Right: Details */}
+                        <div className="flex-1 space-y-5 text-left">
+                          <div className="border-b border-[#ede6dc]/60 pb-3">
+                            <h2 className="text-xl font-black text-[#2d1b18]">{currentUser?.name || 'Mrs. Rekha Patil'}</h2>
+                            <p className="text-xs text-[#4a2c2a] font-bold mt-0.5">Department of Computer Science & Engineering</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Email</span>
+                              <p className="font-semibold text-[#2d1b18]">{facultyProfile.email}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Designation</span>
+                              <p className="font-semibold text-[#2d1b18]">{facultyProfile.designation}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qualification</span>
+                              <p className="font-semibold text-[#2d1b18]">{facultyProfile.qualification}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Experience</span>
+                              <p className="font-semibold text-[#2d1b18]">{facultyProfile.experience}</p>
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Office Hours</span>
+                              <p className="font-semibold text-[#2d1b18]">{facultyProfile.officeHours}</p>
+                            </div>
+                          </div>
+
+                          {facultyProfile.researchPublications && (
+                            <div className="space-y-2 pt-3 border-t border-[#ede6dc]/40">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Research Publications</span>
+                              <ul className="list-disc pl-4 space-y-1 text-xs font-semibold text-slate-500">
+                                {(() => {
+                                  try {
+                                    const pubs = typeof facultyProfile.researchPublications === 'string'
+                                      ? JSON.parse(facultyProfile.researchPublications)
+                                      : facultyProfile.researchPublications;
+                                    return Array.isArray(pubs)
+                                      ? pubs.map((pub, idx) => <li key={idx}>{pub}</li>)
+                                      : <li>{facultyProfile.researchPublications}</li>;
+                                  } catch (e) {
+                                    return <li>{facultyProfile.researchPublications}</li>;
+                                  }
+                                })()}
+                              </ul>
+                            </div>
+                          )}
                         </div>
-
-                        {(() => {
-                          const facultyProfile = facultyList.find(f => f.email === currentUser?.email) || {
-                            name: currentUser?.name || 'Mrs. Rekha Patil',
-                            email: currentUser?.email || 'rekha.patil@sandur.edu',
-                            designation: 'Assistant Professor',
-                            qualification: 'M.Tech in Computer Science',
-                            experience: '12 Years of Experience',
-                            officeHours: 'Mon, Wed, Fri: 11:00 AM - 01:00 PM',
-                            researchPublications: JSON.stringify(['A Study on Cloud Security models', 'Machine learning in education systems'])
-                          };
-                          return (
-                            <>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Email</span>
-                                  <p className="font-semibold text-[#2d1b18]">{facultyProfile.email}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Designation</span>
-                                  <p className="font-semibold text-[#2d1b18]">{facultyProfile.designation}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qualification</span>
-                                  <p className="font-semibold text-[#2d1b18]">{facultyProfile.qualification}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Experience</span>
-                                  <p className="font-semibold text-[#2d1b18]">{facultyProfile.experience}</p>
-                                </div>
-                                <div className="space-y-1 sm:col-span-2">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Office Hours</span>
-                                  <p className="font-semibold text-[#2d1b18]">{facultyProfile.officeHours}</p>
-                                </div>
-                              </div>
-
-                              {facultyProfile.researchPublications && (
-                                <div className="space-y-2 pt-3 border-t border-[#ede6dc]/40">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Research Publications</span>
-                                  <ul className="list-disc pl-4 space-y-1 text-xs font-semibold text-slate-500">
-                                    {(() => {
-                                      try {
-                                        const pubs = typeof facultyProfile.researchPublications === 'string'
-                                          ? JSON.parse(facultyProfile.researchPublications)
-                                          : facultyProfile.researchPublications;
-                                        return Array.isArray(pubs)
-                                          ? pubs.map((pub, idx) => <li key={idx}>{pub}</li>)
-                                          : <li>{facultyProfile.researchPublications}</li>;
-                                      } catch (e) {
-                                        return <li>{facultyProfile.researchPublications}</li>;
-                                      }
-                                    })()}
-                                  </ul>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
                       </div>
                     </div>
-                  </div>
 
                   {/* Quick Actions Card */}
                   <div className="bg-[#faf7f2]/60 border border-[#ede6dc] rounded-3xl p-6 shadow-sm">
@@ -1488,8 +2036,9 @@ export default function Admin() {
                       </button>
                     </div>
                   </div>
-                </div>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* ── Tab: ATTENDANCE MARKING ────────────────────────── */}
               {activeTab === 'ATTENDANCE' && (
@@ -1908,6 +2457,27 @@ export default function Admin() {
                                     <td className="px-5 py-4 text-right text-slate-400 font-semibold">
                                       {new Date(student.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </td>
+                                    <td className="px-5 py-4 text-right">
+                                      <div className="flex items-center justify-end space-x-2">
+                                        <button
+                                          onClick={() => {
+                                            setEditingStudent(student);
+                                            setIsEditStudentModalOpen(true);
+                                          }}
+                                          title="Edit Student"
+                                          className="p-2 rounded-lg text-[#4a2c2a] bg-[#f3ede2] hover:bg-[#ede6dc] transition-colors cursor-pointer border border-[#ede6dc]"
+                                        >
+                                          <FaPencilAlt className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleRemoveStudent(student.id, student.name)}
+                                          title="Remove Student"
+                                          className="p-2 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-200"
+                                        >
+                                          <FaTrash className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -2204,42 +2774,208 @@ export default function Admin() {
                     )}
 
                     {uploadSubTab === 'TIMETABLE' && (
-                      <form onSubmit={handleTimetableSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <FieldLabel>Semester *</FieldLabel>
-                            <SelectInput value={timetableForm.semester} onChange={(e) => setTimetableForm({ ...timetableForm, semester: e.target.value })}>
-                              <option>Semester 1</option>
-                              <option>Semester 2</option>
-                              <option>Semester 3</option>
-                              <option>Semester 4</option>
-                              <option>Semester 5</option>
-                              <option>Semester 6</option>
-                            </SelectInput>
+                      <div className="space-y-6 animate-in fade-in duration-200">
+                        {/* Timetable Mode Toggle */}
+                        <div className="flex bg-[#faf7f2] p-1 rounded-xl border border-[#ede6dc] max-w-md">
+                          <button
+                            type="button"
+                            onClick={() => setTimetableMode('upload')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center space-x-1.5 ${
+                              timetableMode === 'upload'
+                                ? 'bg-[#4a2c2a] text-white shadow-sm'
+                                : 'text-[#4a2c2a]/70 hover:text-[#4a2c2a]'
+                            }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span>1. Upload Timetable File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTimetableMode('customize')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center space-x-1.5 ${
+                              timetableMode === 'customize'
+                                ? 'bg-[#4a2c2a] text-white shadow-sm'
+                                : 'text-[#4a2c2a]/70 hover:text-[#4a2c2a]'
+                            }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>2. Customize Grid</span>
+                          </button>
+                        </div>
+
+                        {/* Mode 1: File Upload */}
+                        {timetableMode === 'upload' && (
+                          <form onSubmit={handleTimetableSubmit} className="space-y-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1.5">
+                                <FieldLabel>Semester *</FieldLabel>
+                                <SelectInput value={timetableForm.semester} onChange={(e) => setTimetableForm({ ...timetableForm, semester: e.target.value })}>
+                                  <option>Semester 1</option>
+                                  <option>Semester 2</option>
+                                  <option>Semester 3</option>
+                                  <option>Semester 4</option>
+                                  <option>Semester 5</option>
+                                  <option>Semester 6</option>
+                                </SelectInput>
+                              </div>
+                              <div className="space-y-1.5">
+                                <FieldLabel>Effective From</FieldLabel>
+                                <TextInput type="date" value={timetableForm.effectiveFrom} onChange={(e) => setTimetableForm({ ...timetableForm, effectiveFrom: e.target.value })} />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <FieldLabel>Upload Timetable File (PDF/Image) *</FieldLabel>
+                              <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                required
+                                onChange={(e) => setTimetableForm({ ...timetableForm, file: e.target.files[0] })}
+                                className="w-full bg-[#faf7f2] border border-[#ede6dc] px-3.5 py-2.5 rounded-xl text-xs text-[#2d1b18] file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#4a2c2a] file:text-white cursor-pointer"
+                              />
+                            </div>
+                            <div className="bg-[#faf7f2] border border-[#ede6dc] rounded-xl p-4 text-xs text-slate-500 flex items-start space-x-2">
+                              <svg className="w-4 h-4 text-[#4a2c2a] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <p>Uploading a new timetable will replace the existing one for the selected semester. Students will see the updated timetable image directly on their dashboard.</p>
+                            </div>
+                            <SubmitButton disabled={isUploading}>{isUploading ? 'Uploading timetable to S3...' : 'Publish Timetable'}</SubmitButton>
+                          </form>
+                        )}
+
+                        {/* Mode 2: Interactive Grid Customizer */}
+                        {timetableMode === 'customize' && (
+                          <div className="space-y-6">
+                            {/* Semester Selection */}
+                            <div className="max-w-xs space-y-1.5">
+                              <FieldLabel>Select Semester to Customize</FieldLabel>
+                              <SelectInput value={selectedTimetableSem} onChange={(e) => setSelectedTimetableSem(e.target.value)}>
+                                <option>Semester 1</option>
+                                <option>Semester 2</option>
+                                <option>Semester 3</option>
+                                <option>Semester 4</option>
+                                <option>Semester 5</option>
+                                <option>Semester 6</option>
+                              </SelectInput>
+                            </div>
+
+                            {/* Table of Custom Slots */}
+                            <div className="border border-[#ede6dc] rounded-2xl overflow-hidden bg-white shadow-3xs">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[800px]">
+                                  <thead>
+                                    <tr className="bg-[#faf7f2]/55 border-b border-[#ede6dc] text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                                      <th className="p-3 pl-5 w-44">Time Slot</th>
+                                      <th className="p-3">Monday</th>
+                                      <th className="p-3">Tuesday</th>
+                                      <th className="p-3">Wednesday</th>
+                                      <th className="p-3">Thursday</th>
+                                      <th className="p-3">Friday</th>
+                                      <th className="p-3 text-center w-24">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-[#ede6dc]/60 text-xs">
+                                    {customSlots.map((slot) => (
+                                      <tr key={slot.id} className="hover:bg-[#faf7f2]/20 transition-colors duration-200">
+                                        <td className="p-2 pl-4">
+                                          <input
+                                            type="text"
+                                            value={slot.timeSlot}
+                                            onChange={(e) => setCustomSlots(customSlots.map(s => s.id === slot.id ? { ...s, timeSlot: e.target.value } : s))}
+                                            className="w-full bg-transparent border-b border-transparent focus:border-[#4a2c2a] focus:outline-none p-1 font-bold text-[#4a2c2a] text-xs"
+                                          />
+                                        </td>
+                                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map((day) => (
+                                          <td key={day} className="p-2">
+                                            <input
+                                              type="text"
+                                              value={slot[day] || ''}
+                                              onChange={(e) => setCustomSlots(customSlots.map(s => s.id === slot.id ? { ...s, [day]: e.target.value } : s))}
+                                              className="w-full bg-transparent border-b border-transparent focus:border-[#4a2c2a] focus:outline-none p-1 text-slate-700 text-xs"
+                                              placeholder="-"
+                                            />
+                                          </td>
+                                        ))}
+                                        <td className="p-2 text-center">
+                                          <div className="flex items-center justify-center space-x-1.5">
+                                            <button
+                                              onClick={() => handleUpdateSlot(slot.id, {
+                                                timeSlot: slot.timeSlot,
+                                                monday: slot.monday,
+                                                tuesday: slot.tuesday,
+                                                wednesday: slot.wednesday,
+                                                thursday: slot.thursday,
+                                                friday: slot.friday
+                                              })}
+                                              title="Save Row Changes"
+                                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            </button>
+                                            <button
+                                              onClick={() => handleDeleteSlot(slot.id)}
+                                              title="Delete Row"
+                                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+
+                                    {/* Add New Row Form */}
+                                    <tr className="bg-[#faf7f2]/10">
+                                      <td className="p-2 pl-4">
+                                        <input
+                                          type="text"
+                                          placeholder="New Slot (e.g. 09:00 AM - 10:00 AM)"
+                                          value={newSlotForm.timeSlot}
+                                          onChange={(e) => setNewSlotForm({ ...newSlotForm, timeSlot: e.target.value })}
+                                          className="w-full bg-white border border-[#ede6dc] px-2 py-1.5 rounded-lg text-xs text-[#2d1b18] focus:outline-none focus:border-[#4a2c2a] font-bold placeholder-slate-400"
+                                        />
+                                      </td>
+                                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map((day) => (
+                                        <td key={day} className="p-2">
+                                          <input
+                                            type="text"
+                                            placeholder="Subject / Lab"
+                                            value={newSlotForm[day]}
+                                            onChange={(e) => setNewSlotForm({ ...newSlotForm, [day]: e.target.value })}
+                                            className="w-full bg-white border border-[#ede6dc] px-2 py-1.5 rounded-lg text-xs text-[#2d1b18] focus:outline-none focus:border-[#4a2c2a] placeholder-slate-400"
+                                          />
+                                        </td>
+                                      ))}
+                                      <td className="p-2 text-center">
+                                        <button
+                                          onClick={handleCreateSlot}
+                                          disabled={isSavingSlot || !newSlotForm.timeSlot}
+                                          className="px-3.5 py-1.5 rounded-lg bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-40"
+                                        >
+                                          {isSavingSlot ? 'Saving...' : 'Add Row'}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            {customSlots.length === 0 && (
+                              <p className="text-center text-slate-400 font-semibold text-xs py-4 border border-dashed border-[#ede6dc] rounded-2xl">
+                                No custom slots configured for {selectedTimetableSem} yet. Enter a slot name and details below to create one.
+                              </p>
+                            )}
                           </div>
-                          <div className="space-y-1.5">
-                            <FieldLabel>Effective From</FieldLabel>
-                            <TextInput type="date" value={timetableForm.effectiveFrom} onChange={(e) => setTimetableForm({ ...timetableForm, effectiveFrom: e.target.value })} />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <FieldLabel>Upload Timetable File (PDF/Image) *</FieldLabel>
-                          <input
-                            type="file"
-                            accept=".pdf,image/*"
-                            required
-                            onChange={(e) => setTimetableForm({ ...timetableForm, file: e.target.files[0] })}
-                            className="w-full bg-[#faf7f2] border border-[#ede6dc] px-3.5 py-2.5 rounded-xl text-xs text-[#2d1b18] file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#4a2c2a] file:text-white cursor-pointer"
-                          />
-                        </div>
-                        <div className="bg-[#faf7f2] border border-[#ede6dc] rounded-xl p-4 text-xs text-slate-500 flex items-start space-x-2">
-                          <svg className="w-4 h-4 text-[#4a2c2a] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <p>Uploading a new timetable will replace the existing one for the selected semester. Students will see the updated timetable immediately.</p>
-                        </div>
-                        <SubmitButton disabled={isUploading}>{isUploading ? 'Uploading timetable to S3...' : 'Publish Timetable'}</SubmitButton>
-                      </form>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2471,96 +3207,318 @@ export default function Admin() {
                 </button>
               </div>
 
-              <form onSubmit={handleStudentSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Left Column */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <FieldLabel>Full Name *</FieldLabel>
-                      <TextInput 
-                        required 
-                        value={studentForm.name} 
-                        onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })} 
-                      />
+              {/* Tab Switcher */}
+              <div className="flex border-b border-[#ede6dc]/40 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAddStudentMode('manual')}
+                  className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    addStudentMode === 'manual'
+                      ? 'border-[#4a2c2a] text-[#4a2c2a]'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Manual Entry
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddStudentMode('excel')}
+                  className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                    addStudentMode === 'excel'
+                      ? 'border-[#4a2c2a] text-[#4a2c2a]'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Excel Sheet Import
+                </button>
+              </div>
+
+              {addStudentMode === 'manual' ? (
+                <form onSubmit={handleStudentSubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <FieldLabel>Full Name *</FieldLabel>
+                        <TextInput 
+                          required 
+                          value={studentForm.name} 
+                          onChange={(e) => setStudentForm({ ...studentForm, name: e.target.value })} 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <FieldLabel>Official Email *</FieldLabel>
+                        <TextInput 
+                          required 
+                          type="email" 
+                          value={studentForm.email} 
+                          onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <FieldLabel>Enrollment ID *</FieldLabel>
+                        <TextInput 
+                          required 
+                          value={studentForm.enrollmentId} 
+                          onChange={(e) => setStudentForm({ ...studentForm, enrollmentId: e.target.value })} 
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <FieldLabel>Official Email *</FieldLabel>
-                      <TextInput 
-                        required 
-                        type="email" 
-                        value={studentForm.email} 
-                        onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })} 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <FieldLabel>Enrollment ID *</FieldLabel>
-                      <TextInput 
-                        required 
-                        value={studentForm.enrollmentId} 
-                        onChange={(e) => setStudentForm({ ...studentForm, enrollmentId: e.target.value })} 
-                      />
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <FieldLabel>Gender</FieldLabel>
+                        <SelectInput 
+                          value={studentForm.gender} 
+                          onChange={(e) => setStudentForm({ ...studentForm, gender: e.target.value })}
+                        >
+                          <option value="MALE">Boys (MALE)</option>
+                          <option value="FEMALE">Girls (FEMALE)</option>
+                        </SelectInput>
+                      </div>
+                      <div className="space-y-1">
+                        <FieldLabel>Group</FieldLabel>
+                        <SelectInput 
+                          value={studentForm.group} 
+                          onChange={(e) => setStudentForm({ ...studentForm, group: e.target.value })}
+                        >
+                          <option value="Group A">Group A</option>
+                          <option value="Group B">Group B</option>
+                        </SelectInput>
+                      </div>
+                      <div className="space-y-1">
+                        <FieldLabel>Temporary Password *</FieldLabel>
+                        <div className="relative">
+                          <input
+                            type={showAddStudentPassword ? "text" : "password"}
+                            required
+                            value={studentForm.password}
+                            onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })}
+                            className="w-full bg-white border border-[#ede6dc] pl-3.5 pr-10 py-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAddStudentPassword(!showAddStudentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors cursor-pointer"
+                          >
+                            {showAddStudentPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Right Column */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <FieldLabel>Gender</FieldLabel>
-                      <SelectInput 
-                        value={studentForm.gender} 
-                        onChange={(e) => setStudentForm({ ...studentForm, gender: e.target.value })}
-                      >
-                        <option value="MALE">Boys (MALE)</option>
-                        <option value="FEMALE">Girls (FEMALE)</option>
-                      </SelectInput>
-                    </div>
-                    <div className="space-y-1">
-                      <FieldLabel>Group</FieldLabel>
-                      <SelectInput 
-                        value={studentForm.group} 
-                        onChange={(e) => setStudentForm({ ...studentForm, group: e.target.value })}
-                      >
-                        <option value="Group A">Group A</option>
-                        <option value="Group B">Group B</option>
-                      </SelectInput>
-                    </div>
-                    <div className="space-y-1">
-                      <FieldLabel>Temporary Password *</FieldLabel>
-                      <TextInput 
-                        required 
-                        type="password" 
-
-                        value={studentForm.password} 
-                        onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })} 
-                      />
-                    </div>
+                  <div className="pt-3 flex justify-end space-x-3 border-t border-[#ede6dc]/60">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddStudentModalOpen(false)}
+                      className="px-6 py-2.5 rounded-xl border border-[#ede6dc] bg-white hover:bg-[#faf7f2] text-slate-500 hover:text-slate-700 text-xs font-bold transition-all duration-200 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingStudent}
+                      className="px-6 py-2.5 rounded-xl bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-md shadow-[#4a2c2a]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1.5"
+                    >
+                      {submittingStudent ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Registering...</span>
+                        </>
+                      ) : (
+                        <span>Register Student</span>
+                      )}
+                    </button>
                   </div>
-                </div>
+                </form>
+              ) : (
+                <form onSubmit={handleExcelImport} className="space-y-5">
+                  <div className="space-y-4">
+                    {/* Instructions and Download Template */}
+                    <div className="bg-[#faf7f2] border border-[#ede6dc] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-[#2d1b18]">Download Sample Template</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Use our template with pre-configured headers for a seamless import.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${API_BASE}/api/admin/students/sample-sheet`, '_blank')}
+                        className="self-start sm:self-center px-4 py-2 rounded-xl bg-white border border-[#ede6dc] text-[#4a2c2a] hover:bg-[#ede6dc]/15 text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1.5 shadow-2xs"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Download Excel</span>
+                      </button>
+                    </div>
 
-                <div className="pt-3 flex justify-end space-x-3 border-t border-[#ede6dc]/60">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddStudentModalOpen(false)}
-                    className="px-6 py-2.5 rounded-xl border border-[#ede6dc] bg-white hover:bg-[#faf7f2] text-slate-500 hover:text-slate-700 text-xs font-bold transition-all duration-200 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submittingStudent}
-                    className="px-6 py-2.5 rounded-xl bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-md shadow-[#4a2c2a]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1.5"
-                  >
-                    {submittingStudent ? (
-                      <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Registering...</span>
-                      </>
-                    ) : (
-                      <span>Register Student</span>
+                    {/* File Upload zone */}
+                    <div className="space-y-1.5">
+                      <FieldLabel>Select Excel Spreadsheet (.xlsx, .xls) *</FieldLabel>
+                      <div className="border-2 border-dashed border-[#ede6dc] hover:border-[#4a2c2a]/60 rounded-2xl p-6 text-center cursor-pointer transition-colors relative bg-slate-50/30">
+                        <input
+                          type="file"
+                          accept=".xlsx, .xls"
+                          required
+                          onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#4a2c2a]">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          {excelFile ? (
+                            <span className="text-xs font-bold text-[#4a2c2a] truncate max-w-xs">{excelFile.name}</span>
+                          ) : (
+                            <>
+                              <span className="text-xs font-bold text-[#2d1b18]">Drag & drop file or click to browse</span>
+                              <span className="text-[10px] text-slate-400 font-semibold">Supports spreadsheets containing email, name, gender (M/F)</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Import Mode selection */}
+                    <div className="space-y-2">
+                      <FieldLabel>Import Strategy</FieldLabel>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className={`border rounded-2xl p-3.5 flex items-start space-x-3 cursor-pointer transition-all ${
+                          importMode === 'merge'
+                            ? 'border-[#4a2c2a] bg-[#4a2c2a]/5 shadow-3xs'
+                            : 'border-[#ede6dc] hover:bg-[#faf7f2]'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="importMode"
+                            value="merge"
+                            checked={importMode === 'merge'}
+                            onChange={() => setImportMode('merge')}
+                            className="mt-0.5 text-[#4a2c2a] focus:ring-[#4a2c2a]"
+                          />
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-[#2d1b18] block">Merge / Append Entries</span>
+                            <span className="text-[10px] text-slate-400 font-medium leading-relaxed block">
+                              Safe mode. Updates details of existing students (matching emails) and registers new ones. Preserves attendance history.
+                            </span>
+                          </div>
+                        </label>
+
+                        <label className={`border rounded-2xl p-3.5 flex items-start space-x-3 cursor-pointer transition-all ${
+                          importMode === 'clear'
+                            ? 'border-rose-500 bg-rose-500/5 shadow-3xs'
+                            : 'border-[#ede6dc] hover:bg-[#faf7f2]'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="importMode"
+                            value="clear"
+                            checked={importMode === 'clear'}
+                            onChange={() => setImportMode('clear')}
+                            className="mt-0.5 text-rose-500 focus:ring-rose-500"
+                          />
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-[#2d1b18] block text-rose-600">Clear & Fresh Import</span>
+                            <span className="text-[10px] text-slate-400 font-medium leading-relaxed block">
+                              Destructive mode. Deletes all student accounts currently enrolled in {selectedSemester} and wipes their attendance logs before importing the sheet.
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Warning Notice if Clear mode is selected */}
+                    {importMode === 'clear' && (
+                      <div className="bg-rose-50 border border-rose-200 text-rose-800 text-[10px] font-semibold p-3.5 rounded-xl leading-relaxed">
+                        ⚠️ <strong>Warning:</strong> Selecting "Clear & Fresh Import" is destructive. You will lose all current students and attendance history for {selectedSemester} once the upload succeeds.
+                      </div>
                     )}
-                  </button>
-                </div>
-              </form>
+
+                    {/* Import Status/Result Display */}
+                    {importStatus === 'uploading' && (
+                      <div className="bg-[#faf7f2] border border-[#ede6dc] p-4 rounded-2xl flex items-center justify-center space-x-2.5">
+                        <div className="w-4 h-4 border-2 border-[#4a2c2a] border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-xs font-bold text-[#4a2c2a]">Processing spreadsheet, registering students...</span>
+                      </div>
+                    )}
+
+                    {importStatus === 'success' && importSummary && (
+                      <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl space-y-2">
+                        <div className="flex items-center space-x-2 text-emerald-800 text-xs font-extrabold">
+                          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Import Completed Successfully!</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-center pt-1 text-[10px] font-bold">
+                          <div className="bg-emerald-100/50 p-2 rounded-xl text-emerald-900">
+                            <div className="text-xs font-black">{importSummary.successCount}</div>
+                            <div>Added</div>
+                          </div>
+                          <div className="bg-blue-50 p-2 rounded-xl text-blue-900">
+                            <div className="text-xs font-black">{importSummary.updatedCount}</div>
+                            <div>Updated</div>
+                          </div>
+                          <div className="bg-amber-50 p-2 rounded-xl text-amber-900">
+                            <div className="text-xs font-black">{importSummary.skipCount}</div>
+                            <div>Skipped</div>
+                          </div>
+                          <div className="bg-rose-50 p-2 rounded-xl text-rose-900">
+                            <div className="text-xs font-black">{importSummary.failCount}</div>
+                            <div>Failed</div>
+                          </div>
+                        </div>
+                        {importSummary.warnings && importSummary.warnings.length > 0 && (
+                          <div className="pt-2 text-[9px] text-amber-800 space-y-1">
+                            <div className="font-extrabold uppercase">Warnings/Skip Logs:</div>
+                            <div className="max-h-24 overflow-y-auto bg-white/50 border border-amber-200 p-2 rounded-lg font-semibold space-y-1">
+                              {importSummary.warnings.map((warn, wIdx) => (
+                                <div key={wIdx}>• {warn}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {importStatus === 'error' && (
+                      <div className="bg-rose-50 border border-rose-250 text-rose-700 text-xs px-4 py-3 rounded-2xl font-bold">
+                        ✗ An error occurred while uploading and parsing the Excel file. Please ensure it matches our template and contains valid emails.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 flex justify-end space-x-3 border-t border-[#ede6dc]/60">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddStudentModalOpen(false)}
+                      className="px-6 py-2.5 rounded-xl border border-[#ede6dc] bg-white hover:bg-[#faf7f2] text-slate-500 hover:text-slate-700 text-xs font-bold transition-all duration-200 cursor-pointer"
+                    >
+                      Close
+                    </button>
+                    {importStatus !== 'success' && (
+                      <button
+                        type="submit"
+                        disabled={importStatus === 'uploading' || !excelFile}
+                        className="px-6 py-2.5 rounded-xl bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-md shadow-[#4a2c2a]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1.5"
+                      >
+                        {importStatus === 'uploading' ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Importing...</span>
+                          </>
+                        ) : (
+                          <span>Start Import</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}
@@ -2735,10 +3693,13 @@ export default function Admin() {
                         value={facultyForm.designation} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, designation: e.target.value })}
                       >
-                        <option>HOD & Professor</option>
-                        <option>Associate Professor</option>
-                        <option>Assistant Professor</option>
+                        <option>Admin</option>
+                        <option>Hod</option>
                         <option>Senior Lecturer</option>
+                        <option>Lecturer</option>
+                        <option>Asst Lecturer</option>
+                        <option>System admin</option>
+                        <option>Instructor</option>
                       </SelectInput>
                     </div>
                   </div>
@@ -2770,10 +3731,30 @@ export default function Admin() {
                       <FieldLabel>Research Publications (separate with ';')</FieldLabel>
                       <textarea
                         rows={2}
-
                         value={facultyForm.publications}
                         onChange={(e) => setFacultyForm({ ...facultyForm, publications: e.target.value })}
                         className="w-full bg-white border border-[#ede6dc] p-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] resize-none transition-colors duration-200"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <FieldLabel>Profile Picture</FieldLabel>
+                      {facultyPhotoFile && (
+                        <div className="flex items-center space-x-3 mb-2 animate-in fade-in duration-200">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#ede6dc] shrink-0 bg-[#faf7f2]">
+                            <img 
+                              src={URL.createObjectURL(facultyPhotoFile)} 
+                              alt="Selected preview" 
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                          <span className="text-[10px] text-[#8d6e63] font-bold uppercase tracking-wider">New Selected Photo</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setFacultyPhotoFile(e.target.files?.[0] || null)}
+                        className="w-full bg-white border border-[#ede6dc] px-3 py-2 rounded-xl text-xs text-[#2d1b18] focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
                       />
                     </div>
                   </div>
@@ -2883,12 +3864,22 @@ export default function Admin() {
                     </div>
                     <div className="space-y-1">
                       <FieldLabel>Change Password (leave blank to keep current)</FieldLabel>
-                      <TextInput 
-                        type="password" 
-
-                        value={editingStudent.password || ''} 
-                        onChange={(e) => setEditingStudent({ ...editingStudent, password: e.target.value })} 
-                      />
+                      <div className="relative">
+                        <input
+                          type={showEditStudentPassword ? "text" : "password"}
+                          value={editingStudent.password || ''}
+                          onChange={(e) => setEditingStudent({ ...editingStudent, password: e.target.value })}
+                          className="w-full bg-white border border-[#ede6dc] pl-3.5 pr-10 py-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
+                          placeholder="Leave blank to keep current"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowEditStudentPassword(!showEditStudentPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors cursor-pointer"
+                        >
+                          {showEditStudentPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3100,10 +4091,13 @@ export default function Admin() {
                         value={editingFaculty.designation} 
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, designation: e.target.value })}
                       >
-                        <option>HOD & Professor</option>
-                        <option>Associate Professor</option>
-                        <option>Assistant Professor</option>
+                        <option>Admin</option>
+                        <option>Hod</option>
                         <option>Senior Lecturer</option>
+                        <option>Lecturer</option>
+                        <option>Asst Lecturer</option>
+                        <option>System admin</option>
+                        <option>Instructor</option>
                       </SelectInput>
                     </div>
                   </div>
@@ -3138,6 +4132,33 @@ export default function Admin() {
                         value={editingFaculty.publications}
                         onChange={(e) => setEditingFaculty({ ...editingFaculty, publications: e.target.value })}
                         className="w-full bg-white border border-[#ede6dc] p-2.5 rounded-xl text-xs text-[#2d1b18] placeholder-slate-400 focus:outline-none focus:border-[#4a2c2a] resize-none transition-colors duration-200"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <FieldLabel>Profile Picture</FieldLabel>
+                      {(editingFacultyPhotoFile || editingFaculty.photoUrl) && (
+                        <div className="flex items-center space-x-3 mb-2 animate-in fade-in duration-200">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#ede6dc] shrink-0 bg-[#faf7f2] flex items-center justify-center text-xs font-bold text-[#4a2c2a]">
+                            <img 
+                              src={editingFacultyPhotoFile ? URL.createObjectURL(editingFacultyPhotoFile) : editingFaculty.photoUrl} 
+                              alt="Profile preview" 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement.innerText = editingFaculty.name ? editingFaculty.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : '';
+                              }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-[#8d6e63] font-bold uppercase tracking-wider">
+                            {editingFacultyPhotoFile ? 'New Selected Photo' : 'Current Picture'}
+                          </span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setEditingFacultyPhotoFile(e.target.files?.[0] || null)}
+                        className="w-full bg-white border border-[#ede6dc] px-3 py-2 rounded-xl text-xs text-[#2d1b18] focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
                       />
                     </div>
                   </div>
@@ -3199,6 +4220,79 @@ export default function Admin() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {isChangePhotoModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-[#faf7f2] border border-[#ede6dc] p-6 rounded-3xl shadow-2xl w-full max-w-sm relative animate-in zoom-in-95 duration-200 text-slate-800">
+              <button
+                onClick={() => {
+                  setIsChangePhotoModalOpen(false);
+                  setChangePhotoFile(null);
+                }}
+                className="absolute top-4 right-4 text-[#4a2c2a] hover:text-[#5d3a37] bg-[#f3ede2] p-2.5 rounded-xl border border-[#ede6dc] hover:scale-105 transition-all duration-200 cursor-pointer"
+              >
+                <FaTimes className="w-3.5 h-3.5" />
+              </button>
+              
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#2d1b18] border-b border-[#ede6dc] pb-2">Change Profile Photo</h3>
+              
+              <form onSubmit={handleFacultyChangePhoto} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <FieldLabel>Select Profile Picture</FieldLabel>
+                  
+                  {/* Preview Container */}
+                  {changePhotoFile && (
+                    <div className="flex items-center space-x-3 mb-2 animate-in fade-in duration-200">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#ede6dc] shrink-0 bg-[#faf7f2]">
+                        <img 
+                          src={URL.createObjectURL(changePhotoFile)} 
+                          alt="New preview" 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <span className="text-[10px] text-[#8d6e63] font-bold uppercase tracking-wider">New Selected Photo</span>
+                    </div>
+                  )}
+                  
+                  <input
+                    type="file"
+                    accept="image/*"
+                    required
+                    onChange={(e) => setChangePhotoFile(e.target.files?.[0] || null)}
+                    className="w-full bg-white border border-[#ede6dc] px-3 py-2 rounded-xl text-xs text-[#2d1b18] focus:outline-none focus:border-[#4a2c2a] transition-colors duration-200"
+                  />
+                </div>
+                
+                <div className="pt-3 flex justify-end space-x-3 border-t border-[#ede6dc]/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsChangePhotoModalOpen(false);
+                      setChangePhotoFile(null);
+                    }}
+                    className="px-6 py-2.5 rounded-xl border border-[#ede6dc] bg-white hover:bg-[#faf7f2] text-slate-500 hover:text-slate-700 text-xs font-bold transition-all duration-200 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingPhoto}
+                    className="px-6 py-2.5 rounded-xl bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-md shadow-[#4a2c2a]/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1.5"
+                  >
+                    {submittingPhoto ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <span>Upload Photo</span>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

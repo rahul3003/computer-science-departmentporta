@@ -101,75 +101,89 @@ export default function Timetable() {
         )}
 
         {/* Timetable Table Grid */}
-        <div className="bg-white border border-[#ede6dc]/70 rounded-2xl overflow-hidden shadow-xs max-w-5xl mx-auto">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead>
-                <tr className="bg-[#faf7f2]/50 text-slate-500 border-b border-[#ede6dc] text-xs font-bold tracking-wider uppercase">
-                  <th className="p-4 pl-6 w-52 text-[#4a2c2a]">Time Slot</th>
-                  {activeTimetable.days.map((day) => (
-                    <th key={day} className="p-4">{day}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#ede6dc]/60 text-xs">
-                {activeTimetable.slots.map((slot, index) => (
-                  <tr key={index} className="hover:bg-[#faf7f2]/20 transition-colors duration-200">
-                    <td className="p-4 pl-6 font-bold text-[#4a2c2a] bg-[#faf7f2]/20 border-r border-[#ede6dc]/30">
-                      {slot.time}
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div className="font-semibold">{slot.Monday}</div>
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div className="font-semibold">{slot.Tuesday}</div>
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div className="font-semibold">{slot.Wednesday}</div>
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div className="font-semibold">{slot.Thursday}</div>
-                    </td>
-                    <td className="p-4 text-slate-700">
-                      <div className="font-semibold">{slot.Friday}</div>
-                    </td>
+        {activeTimetable.slots.length > 0 && (
+          <div className="bg-white border border-[#ede6dc]/70 rounded-2xl overflow-hidden shadow-xs max-w-5xl mx-auto">
+            <h3 className="bg-[#faf7f2]/30 px-6 py-4 text-xs font-extrabold text-[#2d1b18] uppercase tracking-wider border-b border-[#ede6dc]/70 flex items-center space-x-2">
+              <span className="w-1.5 h-3 bg-[#4a2c2a] rounded-sm"></span>
+              <span>Weekly Class Schedule</span>
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-[#faf7f2]/50 text-slate-500 border-b border-[#ede6dc] text-xs font-bold tracking-wider uppercase">
+                    <th className="p-4 pl-6 w-52 text-[#4a2c2a]">Time Slot</th>
+                    {activeTimetable.days.map((day) => (
+                      <th key={day} className="p-4">{day}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#ede6dc]/60 text-xs">
+                  {activeTimetable.slots.map((slot, index) => (
+                    <tr key={index} className="hover:bg-[#faf7f2]/20 transition-colors duration-200">
+                      <td className="p-4 pl-6 font-bold text-[#4a2c2a] bg-[#faf7f2]/20 border-r border-[#ede6dc]/30">
+                        {slot.time}
+                      </td>
+                      <td className="p-4 text-slate-700">
+                        <div className="font-semibold">{slot.Monday}</div>
+                      </td>
+                      <td className="p-4 text-slate-700">
+                        <div className="font-semibold">{slot.Tuesday}</div>
+                      </td>
+                      <td className="p-4 text-slate-700">
+                        <div className="font-semibold">{slot.Wednesday}</div>
+                      </td>
+                      <td className="p-4 text-slate-700">
+                        <div className="font-semibold">{slot.Thursday}</div>
+                      </td>
+                      <td className="p-4 text-slate-700">
+                        <div className="font-semibold">{slot.Friday}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Info Note */}
-        <div className="max-w-5xl mx-auto bg-white border border-[#ede6dc]/75 p-4 rounded-xl flex items-center space-x-3 text-slate-500 text-xs">
-          <svg className="w-5 h-5 text-[#4a2c2a] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p>
-            Lab periods are held in designated computer hubs: PC Hardware Lab (Room 102), Software Centre (Room 404), and IT Skills Lab (Room 405). Classroom listings are subject to scheduling shifts by HOD.
-          </p>
-        </div>
-
-        <div className="text-center pt-2">
-          {timetableResource ? (
+        {/* Uploaded Timetable direct view (Image / PDF) */}
+        {timetableResource && (
+          <div className="bg-white border border-[#ede6dc]/70 rounded-2xl p-6 flex flex-col items-center justify-center space-y-5 max-w-5xl mx-auto shadow-xs">
+            <h3 className="w-full text-left pb-3 border-b border-[#ede6dc]/70 text-xs font-extrabold text-[#2d1b18] uppercase tracking-wider flex items-center space-x-2">
+              <span className="w-1.5 h-3 bg-[#4a2c2a] rounded-sm"></span>
+              <span>Official Timetable Sheet</span>
+            </h3>
+            <div className="w-full overflow-hidden flex justify-center">
+              {timetableResource.fileUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={timetableResource.fileUrl} className="w-full h-[600px] rounded-xl border border-[#ede6dc]" />
+              ) : (
+                <img
+                  src={timetableResource.fileUrl}
+                  alt="Official Timetable"
+                  className="max-w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-xs border border-[#ede6dc]/70"
+                />
+              )}
+            </div>
             <a
               href={timetableResource.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-primary-brown-light hover:bg-card-border text-primary-brown border border-card-border transition-all duration-300 cursor-pointer shadow-3xs"
+              className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#4a2c2a] hover:underline"
             >
-              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              <span className="font-bold text-xs">View Timetable Document (PDF/Image)</span>
+              <span>Download / View Original File</span>
             </a>
-          ) : (
-            <div className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#faf7f2]/50 text-slate-400 border border-dashed border-[#ede6dc] text-xs font-semibold">
-              Timetable Document not uploaded yet for this semester
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Fallback placeholder if neither exists */}
+        {!timetableResource && activeTimetable.slots.length === 0 && (
+          <div className="bg-[#faf7f2]/50 border border-dashed border-[#ede6dc] rounded-2xl py-12 text-center text-slate-400 font-semibold text-xs max-w-5xl mx-auto">
+            Timetable schedule and documents have not been published yet for this semester.
+          </div>
+        )}
 
       </div>
     </div>

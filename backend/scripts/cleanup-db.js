@@ -41,12 +41,16 @@ const prisma = new PrismaClient({ adapter });
 async function run() {
   console.log('Cleaning up database to leave only 3 credentials...');
   try {
-    // 1. Delete all FeedComments and FeedPosts first to avoid foreign key issues
+    // 1. Delete all records from other tables to start clean
     await prisma.feedComment.deleteMany({});
     await prisma.feedPost.deleteMany({});
+    await prisma.attendance.deleteMany({});
+    await prisma.subject.deleteMany({});
+    await prisma.resource.deleteMany({});
+    await prisma.announcement.deleteMany({});
 
-    // 2. Delete all other users except admin@sandur.edu, rekha.patil@sandur.edu, and student@sandur.edu
-    const allowedEmails = ['admin@sandur.edu', 'rekha.patil@sandur.edu', 'student@sandur.edu'];
+    // 2. Delete all other users except allowed accounts
+    const allowedEmails = ['admin@sandur.edu', 'rekha.patil@sandur.edu', 'student@sandur.edu', 'student.sem1@sandur.edu'];
     
     const deleteUsersResult = await prisma.user.deleteMany({
       where: {
@@ -114,6 +118,23 @@ async function run() {
       }
     });
     console.log('✓ Verified Aarav Patel (Student) user exists.');
+
+    // 5.1 Ensure Semester 1 Student exists in User
+    await prisma.user.upsert({
+      where: { email: 'student.sem1@sandur.edu' },
+      update: {},
+      create: {
+        name: 'Karan Patil',
+        email: 'student.sem1@sandur.edu',
+        password: hashedStudentPassword,
+        role: 'STUDENT',
+        gender: 'MALE',
+        enrollmentId: 'SP-2026-CSE-001',
+        semester: 'Semester 1',
+        group: 'Group A'
+      }
+    });
+    console.log('✓ Verified Karan Patil (Semester 1 Student) user exists.');
 
     // 6. Ensure Admin HOD exists in User
     const hashedAdminPassword = await bcrypt.hash('adminpassword123', 10);

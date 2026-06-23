@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../lib/prisma');
+const { signS3Url } = require('../lib/s3');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sandur_polytechnic_jwt_secret_key_default';
 
@@ -39,7 +40,8 @@ const registerUser = async (req, res) => {
         role: role || 'STUDENT',
         enrollmentId: enrollmentId || null,
         semester: semester || null,
-        group: group || null
+        group: group || null,
+        needsPasswordChange: false
       }
     });
 
@@ -94,6 +96,15 @@ const loginUser = async (req, res) => {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
+    if (user.role === 'FACULTY') {
+      const facultyProfile = await prisma.faculty.findUnique({
+        where: { email: user.email }
+      });
+      if (facultyProfile && facultyProfile.photoUrl) {
+        userWithoutPassword.photoUrl = await signS3Url(facultyProfile.photoUrl);
+      }
+    }
+
     res.status(200).json({
       user: userWithoutPassword,
       token
@@ -104,7 +115,54 @@ const loginUser = async (req, res) => {
   }
 };
 
+// Change password
+const changePassword = async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    if (!email || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Missing required fields: email, currentPassword, newPassword' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Compare current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid current password' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in DB and clear needsPasswordChange flag
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+        needsPasswordChange: false
+      }
+    });
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = updatedUser;
+
+    res.status(200).json({
+      message: 'Password changed successfully',
+      user: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Error during password change:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 module.exports = {
   registerUser,
-  loginUser
+  loginUser,
+  changePassword
 };

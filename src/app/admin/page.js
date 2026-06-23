@@ -4,10 +4,10 @@ import { useState } from 'react';
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 const mockFacultyList = [
-  { id: 'f1', name: 'Dr. Anil Kumar M.G.', designation: 'HOD & Professor', department: 'CSE', email: 'anilkumar@sanpoly.edu.in' },
-  { id: 'f2', name: 'Mrs. Rekha Patil', designation: 'Assistant Professor', department: 'CSE', email: 'rekhapatil@sanpoly.edu.in' },
-  { id: 'f3', name: 'Mr. Shivasharanappa K.', designation: 'Associate Professor & Lead', department: 'AI_DS', email: 'shiva.k@sanpoly.edu.in' },
-  { id: 'f4', name: 'Miss. Deepika R.', designation: 'Assistant Professor', department: 'AI_DS', email: 'deepikar@sanpoly.edu.in' },
+  { id: 'f1', name: 'Dr. Anil Kumar M.G.', designation: 'Hod', department: 'CSE', email: 'anilkumar@sanpoly.edu.in' },
+  { id: 'f2', name: 'Mrs. Rekha Patil', designation: 'Lecturer', department: 'CSE', email: 'rekhapatil@sanpoly.edu.in' },
+  { id: 'f3', name: 'Mr. Shivasharanappa K.', designation: 'Senior Lecturer', department: 'AI_DS', email: 'shiva.k@sanpoly.edu.in' },
+  { id: 'f4', name: 'Miss. Deepika R.', designation: 'Asst Lecturer', department: 'AI_DS', email: 'deepikar@sanpoly.edu.in' },
   { id: 'f5', name: 'Mr. Nagaraj Gowda', designation: 'Senior Lecturer', department: 'CSE', email: 'nagarajg@sanpoly.edu.in' },
 ];
 
@@ -84,7 +84,7 @@ export default function Admin() {
   const [manualsForm, setManualsForm] = useState({ title: '', lab: 'PC Hardware & Networking Lab', courseCode: '', file: null });
   const [timetableForm, setTimetableForm] = useState({ semester: 'Semester 3', effectiveFrom: '', file: null });
   const [announcementForm, setAnnouncementForm] = useState({ title: '', category: 'GENERAL', content: '', attachmentUrl: '' });
-  const [facultyForm, setFacultyForm] = useState({ name: '', email: '', department: 'CSE', designation: 'Assistant Professor', qualification: '', experience: '', officeHours: '', publications: '' });
+  const [facultyForm, setFacultyForm] = useState({ name: '', email: '', department: 'CSE', designation: 'Lecturer', qualification: '', experience: '', officeHours: '', publications: '' });
   const [resourcesList] = useState(mockResourcesList);
   const [facultyList] = useState(mockFacultyList);
 
@@ -125,7 +125,7 @@ export default function Admin() {
     e.preventDefault();
     if (!facultyForm.name || !facultyForm.email) return;
     triggerNotification(`✓ Faculty profile for "${facultyForm.name}" created and added to directory.`);
-    setFacultyForm({ name: '', email: '', department: 'CSE', designation: 'Assistant Professor', qualification: '', experience: '', officeHours: '', publications: '' });
+    setFacultyForm({ name: '', email: '', department: 'CSE', designation: 'Lecturer', qualification: '', experience: '', officeHours: '', publications: '' });
   };
 
   const tabs = [
@@ -439,10 +439,13 @@ export default function Admin() {
                       <div className="space-y-1.5">
                         <FieldLabel>Designation</FieldLabel>
                         <SelectInput value={facultyForm.designation} onChange={(e) => setFacultyForm({ ...facultyForm, designation: e.target.value })}>
-                          <option>HOD & Professor</option>
-                          <option>Associate Professor</option>
-                          <option>Assistant Professor</option>
+                          <option>Admin</option>
+                          <option>Hod</option>
                           <option>Senior Lecturer</option>
+                          <option>Lecturer</option>
+                          <option>Asst Lecturer</option>
+                          <option>System admin</option>
+                          <option>Instructor</option>
                         </SelectInput>
                       </div>
                     </div>

@@ -644,44 +644,50 @@ export default function Home() {
                     key={member.id} 
                     className="w-full md:w-1/2 lg:w-1/3 shrink-0 px-4 flex"
                   >
-                    <div className="bg-white border border-[#ede6dc] rounded-3xl p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-1.5 flex flex-col justify-between space-y-6 group w-full">
+                    <div className="bg-white border border-[#ede6dc] rounded-[32px] p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-1.5 flex flex-col justify-between group w-full">
                       <div className="space-y-4">
-                        {/* Avatar / Photo block */}
-                        <div className="flex items-center space-x-4">
-                          {member.photoUrl ? (
-                            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-[#ede6dc] shrink-0">
-                              <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
-                            </div>
+                        {/* Big Photo Container */}
+                        <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#f3ede2] to-[#faf7f2] border border-[#ede6dc] flex items-center justify-center font-extrabold text-3xl text-[#4a2c2a] shadow-inner shrink-0">
+                          {member.photoUrl && !member.photoUrl.includes('/placeholder/') ? (
+                            <img 
+                              src={member.photoUrl} 
+                              alt={member.name} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement.innerText = member.name ? member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : '';
+                              }}
+                            />
                           ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary-brown to-accent-brown flex items-center justify-center font-extrabold text-white text-xl shadow-sm shrink-0">
-                              {member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </div>
+                            member.name ? member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : ''
                           )}
-                          <div>
-                            <h3 className="text-sm font-extrabold text-[#2d1b18] tracking-tight leading-snug group-hover:text-primary-brown transition-colors">
-                              {member.name}
-                            </h3>
-                            <p className="text-[#8d6e63] text-[10px] font-bold uppercase tracking-wider mt-1">
-                              {member.designation}
-                            </p>
-                          </div>
+                        </div>
+
+                        {/* Name and Designation */}
+                        <div className="space-y-1">
+                          <h3 className="text-base font-extrabold text-[#2d1b18] tracking-tight leading-snug group-hover:text-primary-brown transition-colors">
+                            {member.name}
+                          </h3>
+                          <p className="text-[#8d6e63] text-xs font-bold uppercase tracking-wider">
+                            {member.designation}
+                          </p>
                         </div>
 
                         {/* Badges block */}
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 pt-1">
                           <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-[#faf7f2] border border-[#ede6dc] rounded-lg text-[10px] font-bold text-slate-600">
                             <FaGraduationCap className="w-3.5 h-3.5 text-[#4a2c2a]" />
                             <span>{member.qualification}</span>
                           </span>
                           <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-[#faf7f2] border border-[#ede6dc] rounded-lg text-[10px] font-bold text-slate-600">
                             <FaBriefcase className="w-3.5 h-3.5 text-[#4a2c2a]" />
-                            <span>{member.experience} exp</span>
+                            <span>{member.experience}</span>
                           </span>
                         </div>
                       </div>
 
                       {/* Contact & Hours block */}
-                      <div className="pt-4 border-t border-[#ede6dc]/60 space-y-2 mt-auto">
+                      <div className="pt-4 border-t border-[#ede6dc]/60 space-y-2 mt-4">
                         <a 
                           href={`mailto:${member.email}`} 
                           className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-[#4a2c2a] transition-colors"

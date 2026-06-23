@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaLock, FaUser, FaCheckCircle, FaTimes, FaSignOutAlt, FaBell, FaSun, FaMoon, FaPalette, FaUndo, FaCog } from 'react-icons/fa';
+import { FaLock, FaUser, FaCheckCircle, FaTimes, FaSignOutAlt, FaBell, FaSun, FaMoon, FaPalette, FaUndo, FaCog, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { getThemeSettings, setThemeSettings, applyCustomStyles } from '@/lib/theme';
 
 export default function Navbar() {
@@ -15,6 +15,19 @@ export default function Navbar() {
   const [currentTheme, setCurrentTheme] = useState('light');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+
+  // Password Change State
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [changePasswordState, setChangePasswordState] = useState({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+  const [changePasswordStatus, setChangePasswordStatus] = useState(null); // 'loading', 'success', 'error'
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const isForcedPasswordChange = currentUser && currentUser.needsPasswordChange === true;
+
+  // Password Visibility States
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -125,6 +138,68 @@ export default function Navbar() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setChangePasswordStatus('loading');
+    setChangePasswordError('');
+
+    if (changePasswordState.newPassword !== changePasswordState.confirmNewPassword) {
+      setChangePasswordStatus('error');
+      changePasswordError ? null : setChangePasswordError('New passwords do not match.');
+      return;
+    }
+
+    if (changePasswordState.newPassword.length < 6) {
+      setChangePasswordStatus('error');
+      setChangePasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (changePasswordState.newPassword === changePasswordState.currentPassword) {
+      setChangePasswordStatus('error');
+      setChangePasswordError('New password must be different from current password.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentUser.email,
+          currentPassword: changePasswordState.currentPassword,
+          newPassword: changePasswordState.newPassword
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setChangePasswordStatus('error');
+        setChangePasswordError(data.error || 'Failed to change password. Please check your current password.');
+        return;
+      }
+
+      setChangePasswordStatus('success');
+
+      // Update local storage and currentUser state
+      const updatedUser = { ...currentUser, needsPasswordChange: false };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+
+      setTimeout(() => {
+        setIsChangePasswordOpen(false);
+        setChangePasswordStatus(null);
+        setChangePasswordState({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+      }, 1500);
+
+    } catch (err) {
+      console.error('Password change error:', err);
+      setChangePasswordStatus('error');
+      setChangePasswordError('Network error. Please try again.');
+    }
+  };
+
   const handleExitConsole = (e) => {
     const confirmExit = window.confirm("Are you sure you want to exit the student console?");
     if (!confirmExit) {
@@ -176,11 +251,11 @@ export default function Navbar() {
                 }`}>
                   Sandur Polytechnic
                 </span>
-                <span className={`text-[10px] font-bold tracking-wider uppercase mt-1 transition-colors duration-300 ${
-                  pathname === '/' ? 'text-slate-800' : 'text-foreground/60'
-                }`}>
-                  Computer Science & Engineering Department
-                </span>
+                {pathname !== '/' && (
+                  <span className="text-[10px] font-bold tracking-wider uppercase mt-1 transition-colors duration-300 text-foreground/60">
+                    Computer Science & Engineering Department
+                  </span>
+                )}
               </div>
             </Link>
 
@@ -210,8 +285,20 @@ export default function Navbar() {
                     className="flex items-center space-x-2 bg-card-bg border border-card-border rounded-xl p-1.5 pr-3 shadow-sm select-none hover:bg-primary-brown-light transition-colors duration-200 cursor-pointer"
                     title="View Profile"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary-brown to-accent-brown flex items-center justify-center font-bold text-white text-[10px] shrink-0 shadow-sm">
-                      {currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA')}
+                    <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-tr from-primary-brown to-accent-brown flex items-center justify-center font-bold text-white text-[10px] shrink-0 shadow-sm">
+                      {currentUser?.photoUrl ? (
+                        <img 
+                          src={currentUser.photoUrl} 
+                          alt={currentUser.name || 'User'} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement.innerText = currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA');
+                          }}
+                        />
+                      ) : (
+                        currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA')
+                      )}
                     </div>
                     <div className="hidden sm:block text-left leading-none">
                       <span className="block text-[8px] text-foreground/50 font-bold uppercase tracking-wider">Welcome</span>
@@ -269,8 +356,20 @@ export default function Navbar() {
             <div className="flex flex-col md:flex-row">
               {/* Left Column: Summary & Avatar Card */}
               <div className="md:w-2/5 bg-gradient-to-br from-primary-brown to-primary-brown-hover text-white p-8 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-extrabold text-white text-3xl shadow-lg">
-                  {currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA')}
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-extrabold text-white text-3xl shadow-lg">
+                  {currentUser?.photoUrl ? (
+                    <img 
+                      src={currentUser.photoUrl} 
+                      alt={currentUser.name || 'User'} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement.innerText = currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA');
+                      }}
+                    />
+                  ) : (
+                    currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('').slice(0, 2).toUpperCase() : (currentUser?.role === 'ADMIN' ? 'AD' : 'FA')
+                  )}
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-xl font-extrabold tracking-tight">{currentUser?.name || 'User'}</h3>
@@ -362,6 +461,16 @@ export default function Navbar() {
                   >
                     <FaCog className="w-3.5 h-3.5" />
                     <span>Console Settings</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsProfileModalOpen(false);
+                      setIsChangePasswordOpen(true);
+                    }}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-700 to-amber-850 hover:from-amber-850 hover:to-amber-900 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 cursor-pointer shadow"
+                  >
+                    <FaLock className="w-3 h-3 text-amber-200" />
+                    <span>Change Password</span>
                   </button>
                   <button
                     onClick={() => {
@@ -720,13 +829,22 @@ export default function Navbar() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-foreground/70 text-[10px] uppercase tracking-wider font-bold">Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-background border border-card-border px-4 py-2.5 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary-brown"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-background border border-card-border pl-4 pr-10 py-2.5 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary-brown"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground p-1 transition-colors cursor-pointer"
+                    >
+                      {showLoginPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -754,6 +872,151 @@ export default function Navbar() {
                 <span>Authorized! Redirecting to your console...</span>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal (Forced or Manual) */}
+      {(isChangePasswordOpen || isForcedPasswordChange) && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-card-bg border border-card-border p-8 rounded-3xl shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-200 text-foreground">
+            
+            {/* Close Button - Only show if not forced */}
+            {!isForcedPasswordChange && (
+              <button
+                onClick={() => {
+                  if (changePasswordStatus !== 'loading') {
+                    setIsChangePasswordOpen(false);
+                    setChangePasswordError('');
+                    setChangePasswordStatus(null);
+                    setChangePasswordState({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+                  }
+                }}
+                className="absolute top-4 right-4 text-foreground/60 hover:text-foreground bg-primary-brown-light p-2.5 rounded-xl border border-card-border hover:scale-105 transition-all duration-200 cursor-pointer"
+              >
+                <FaTimes className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-600 to-amber-800 text-white flex items-center justify-center shadow-lg">
+                <FaLock className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-extrabold text-foreground">
+                  {isForcedPasswordChange ? 'Update Default Password' : 'Change Your Password'}
+                </h2>
+                <p className="text-foreground/60 text-[10px] font-bold uppercase tracking-wider">
+                  {isForcedPasswordChange ? 'Action Required' : 'Portal Account Security'}
+                </p>
+              </div>
+            </div>
+
+            {isForcedPasswordChange && (
+              <div className="mt-4 bg-amber-50 border border-amber-200 text-amber-900 text-[11px] p-3.5 rounded-xl font-semibold leading-relaxed">
+                ⚠️ <strong>Security Notice:</strong> You are currently using a default temporary password. To access your portal dashboard and resources, you must set a secure personal password.
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4 mt-4">
+              <div className="space-y-3.5">
+                <div className="space-y-1">
+                  <label className="text-foreground/70 text-[10px] uppercase tracking-wider font-bold">Current Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      required
+                      value={changePasswordState.currentPassword}
+                      onChange={(e) => setChangePasswordState({ ...changePasswordState, currentPassword: e.target.value })}
+                      className="w-full bg-background border border-card-border pl-4 pr-10 py-2.5 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary-brown"
+                      placeholder="Enter current password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground p-1 transition-colors cursor-pointer"
+                    >
+                      {showCurrentPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-foreground/70 text-[10px] uppercase tracking-wider font-bold">New Password</label>
+                    {changePasswordState.newPassword && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                        changePasswordState.newPassword.length < 6 ? 'text-rose-500' :
+                        (changePasswordState.newPassword.length >= 6 && !/[0-9]/.test(changePasswordState.newPassword)) ? 'text-amber-500' : 'text-emerald-500'
+                      }`}>
+                        {changePasswordState.newPassword.length < 6 ? 'Weak' :
+                         (changePasswordState.newPassword.length >= 6 && !/[0-9]/.test(changePasswordState.newPassword)) ? 'Medium' : 'Strong'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={changePasswordState.newPassword}
+                      onChange={(e) => setChangePasswordState({ ...changePasswordState, newPassword: e.target.value })}
+                      className="w-full bg-background border border-card-border pl-4 pr-10 py-2.5 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary-brown"
+                      placeholder="Enter new password (min. 6 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground p-1 transition-colors cursor-pointer"
+                    >
+                      {showNewPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-foreground/70 text-[10px] uppercase tracking-wider font-bold">Confirm New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      value={changePasswordState.confirmNewPassword}
+                      onChange={(e) => setChangePasswordState({ ...changePasswordState, confirmNewPassword: e.target.value })}
+                      className="w-full bg-background border border-card-border pl-4 pr-10 py-2.5 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary-brown"
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 hover:text-foreground p-1 transition-colors cursor-pointer"
+                    >
+                      {showConfirmPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {changePasswordStatus === 'error' && changePasswordError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-4 py-3 rounded-xl font-medium text-left">
+                  ✗ {changePasswordError}
+                </div>
+              )}
+
+              {/* Success Alert */}
+              {changePasswordStatus === 'success' && (
+                <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-emerald-800 text-xs flex items-center space-x-2 text-left">
+                  <FaCheckCircle className="w-4 h-4 text-emerald-500 animate-bounce" />
+                  <span>Password changed successfully! Resuming session...</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={changePasswordStatus === 'loading' || changePasswordStatus === 'success'}
+                className="w-full py-3 rounded-xl font-bold text-xs text-white bg-primary-brown hover:bg-primary-brown-hover transition-all duration-250 cursor-pointer shadow-md flex items-center justify-center space-x-2 disabled:opacity-60"
+              >
+                <FaLock className="w-3.5 h-3.5 text-white" />
+                <span>{changePasswordStatus === 'loading' ? 'Updating Password...' : 'Save New Password'}</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

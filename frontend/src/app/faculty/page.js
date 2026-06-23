@@ -9,7 +9,7 @@ const facultyData = [
     name: 'Dr. Anil Kumar M.G.',
     email: 'anilkumar@sanpoly.edu.in',
     department: 'CSE',
-    designation: 'HOD & Professor',
+    designation: 'Hod',
     qualification: 'M.Tech, Ph.D. in Computer Science',
     experience: '18 Years of Academic Experience',
     photoUrl: '/api/placeholder/150/150', // placeholder or custom gradient
@@ -25,7 +25,7 @@ const facultyData = [
     name: 'Mrs. Rekha Patil',
     email: 'rekhapatil@sanpoly.edu.in',
     department: 'CSE',
-    designation: 'Assistant Professor',
+    designation: 'Lecturer',
     qualification: 'M.Tech in Software Engineering',
     experience: '12 Years of Teaching Experience',
     photoUrl: '/api/placeholder/150/150',
@@ -40,7 +40,7 @@ const facultyData = [
     name: 'Mr. Shivasharanappa K.',
     email: 'shiva.k@sanpoly.edu.in',
     department: 'AI_DS',
-    designation: 'Associate Professor & Lead',
+    designation: 'Senior Lecturer',
     qualification: 'M.Tech in Artificial Intelligence',
     experience: '15 Years of Academic Experience',
     photoUrl: '/api/placeholder/150/150',
@@ -56,7 +56,7 @@ const facultyData = [
     name: 'Miss. Deepika R.',
     email: 'deepikar@sanpoly.edu.in',
     department: 'AI_DS',
-    designation: 'Assistant Professor',
+    designation: 'Asst Lecturer',
     qualification: 'M.Tech in Data Science & Big Data',
     experience: '6 Years in Academia & Research',
     photoUrl: '/api/placeholder/150/150',
@@ -83,12 +83,50 @@ const facultyData = [
   }
 ];
 
+const getPublicationsArray = (publications) => {
+  if (!publications) return [];
+  if (Array.isArray(publications)) return publications;
+  try {
+    const parsed = JSON.parse(publications);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    return publications.split('\n').filter(Boolean);
+  }
+  return [];
+};
+
 function FacultyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
+  const [facultyList, setFacultyList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFaculty() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/faculty`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setFacultyList(data);
+          } else {
+            setFacultyList(facultyData);
+          }
+        } else {
+          setFacultyList(facultyData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch faculty dynamic data", err);
+        setFacultyList(facultyData);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadFaculty();
+  }, []);
 
   useEffect(() => {
     const dept = searchParams.get('dept');
@@ -111,12 +149,12 @@ function FacultyContent() {
     }
   };
 
-  const filteredFaculty = facultyData.filter((member) => {
+  const filteredFaculty = facultyList.filter((member) => {
     const matchesDept = selectedDept === 'ALL' || member.department === selectedDept;
-    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          member.qualification.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          member.designation.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesDept && matchesSearch;
+    const nameMatch = member.name ? member.name.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    const qualMatch = member.qualification ? member.qualification.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    const desMatch = member.designation ? member.designation.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    return matchesDept && (nameMatch || qualMatch || desMatch);
   });
 
   return (
@@ -173,47 +211,89 @@ function FacultyContent() {
         </div>
 
         {/* Faculty Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {filteredFaculty.map((member) => (
-            <div
-              key={member.id}
-              className="bg-[#faf7f2] border border-[#ede6dc] hover:border-[#4a2c2a]/20 rounded-3xl p-6 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
-            >
-              <div className="space-y-4">
-                {/* Photo Placeholder/Avatar */}
-                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#f3ede2] to-[#faf7f2] border border-[#ede6dc] flex items-center justify-center font-bold text-[#4a2c2a] text-2xl shadow-inner">
-                  {member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('')}
-                  <span className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-emerald-500 border border-white"></span>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-[#faf7f2] border border-[#ede6dc] rounded-3xl p-6 flex flex-col justify-between animate-pulse"
+              >
+                <div className="space-y-4">
+                  <div className="w-20 h-20 rounded-2xl bg-[#ede6dc] border border-[#ede6dc]/30"></div>
+                  <div className="space-y-2">
+                    <div className="h-5 bg-[#ede6dc] rounded w-2/3"></div>
+                    <div className="flex space-x-2">
+                      <div className="h-4 bg-[#ede6dc] rounded w-12"></div>
+                      <div className="h-4 bg-[#ede6dc] rounded w-16"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 border-t border-[#ede6dc] pt-3">
+                    <div className="h-3 bg-[#ede6dc] rounded w-5/6"></div>
+                    <div className="h-3 bg-[#ede6dc] rounded w-4/6"></div>
+                    <div className="h-3 bg-[#ede6dc] rounded w-4/6"></div>
+                  </div>
                 </div>
+                <div className="pt-6">
+                  <div className="h-10 bg-[#ede6dc] rounded-xl w-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {filteredFaculty.map((member) => (
+              <div
+                key={member.id}
+                className="bg-[#faf7f2] border border-[#ede6dc] hover:border-[#4a2c2a]/20 rounded-3xl p-6 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+              >
+                <div className="space-y-4">
+                  {/* Photo Placeholder/Avatar */}
+                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-tr from-[#f3ede2] to-[#faf7f2] border border-[#ede6dc] flex items-center justify-center font-bold text-[#4a2c2a] text-2xl shadow-inner shrink-0">
+                    {member.photoUrl && !member.photoUrl.includes('/placeholder/') ? (
+                      <img 
+                        src={member.photoUrl} 
+                        alt={member.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement.innerText = member.name ? member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('') : '';
+                        }}
+                      />
+                    ) : (
+                      member.name ? member.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('') : ''
+                    )}
+                    <span className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-emerald-500 border border-white z-10"></span>
+                  </div>
 
-                <div>
-                  <h3 className="text-lg font-bold text-[#2d1b18] leading-tight">{member.name}</h3>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs text-[#4a2c2a] font-semibold tracking-wide uppercase bg-[#f3ede2] px-2 py-0.5 rounded border border-[#ede6dc]/60">
-                      {member.department === 'AI_DS' ? 'AI & DS' : member.department}
-                    </span>
-                    <span className="text-slate-500 text-xs">{member.designation}</span>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#2d1b18] leading-tight">{member.name}</h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-xs text-[#4a2c2a] font-semibold tracking-wide uppercase bg-[#f3ede2] px-2 py-0.5 rounded border border-[#ede6dc]/60">
+                        {member.department === 'AI_DS' ? 'AI & DS' : member.department}
+                      </span>
+                      <span className="text-slate-500 text-xs">{member.designation}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-500 border-t border-[#ede6dc] pt-3">
+                    <p>🎓 <span className="text-slate-700">{member.qualification}</span></p>
+                    <p>💼 <span className="text-slate-700">{member.experience}</span></p>
+                    <p>🕒 <span className="text-slate-700">{member.officeHours}</span></p>
                   </div>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-slate-500 border-t border-[#ede6dc] pt-3">
-                  <p>🎓 <span className="text-slate-700">{member.qualification}</span></p>
-                  <p>💼 <span className="text-slate-700">{member.experience}</span></p>
-                  <p>🕒 <span className="text-slate-700">{member.officeHours}</span></p>
+                <div className="pt-6">
+                  <button
+                    onClick={() => setSelectedFaculty(member)}
+                    className="w-full py-2.5 rounded-xl font-bold bg-white hover:bg-[#4a2c2a] hover:text-white border border-[#ede6dc] text-[#4a2c2a] text-xs transition-all duration-300 cursor-pointer"
+                  >
+                    View Details & Publications
+                  </button>
                 </div>
               </div>
-
-              <div className="pt-6">
-                <button
-                  onClick={() => setSelectedFaculty(member)}
-                  className="w-full py-2.5 rounded-xl font-bold bg-white hover:bg-[#4a2c2a] hover:text-white border border-[#ede6dc] text-[#4a2c2a] text-xs transition-all duration-300 cursor-pointer"
-                >
-                  View Details & Publications
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredFaculty.length === 0 && (
@@ -244,8 +324,20 @@ function FacultyContent() {
                 
                 {/* Header Profile */}
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-[#4a2c2a] to-[#8d6e63] flex items-center justify-center font-bold text-white text-xl shadow">
-                    {selectedFaculty.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('')}
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-tr from-[#4a2c2a] to-[#8d6e63] flex items-center justify-center font-bold text-white text-xl shadow shrink-0">
+                    {selectedFaculty.photoUrl && !selectedFaculty.photoUrl.includes('/placeholder/') ? (
+                      <img 
+                        src={selectedFaculty.photoUrl} 
+                        alt={selectedFaculty.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement.innerText = selectedFaculty.name ? selectedFaculty.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('') : '';
+                        }}
+                      />
+                    ) : (
+                      selectedFaculty.name ? selectedFaculty.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('') : ''
+                    )}
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-[#2d1b18]">{selectedFaculty.name}</h2>
@@ -268,7 +360,7 @@ function FacultyContent() {
                     <span>Research Publications</span>
                   </h4>
                   <ul className="space-y-2 text-xs text-slate-655">
-                    {selectedFaculty.researchPublications.map((pub, index) => (
+                    {getPublicationsArray(selectedFaculty.researchPublications).map((pub, index) => (
                       <li key={index} className="pl-4 border-l-2 border-[#4a2c2a] py-0.5 leading-relaxed">
                         {pub}
                       </li>
@@ -279,7 +371,7 @@ function FacultyContent() {
                 {/* Buttons */}
                 <div className="flex items-center space-x-4 pt-4 border-t border-[#ede6dc]">
                   <a
-                    href={selectedFaculty.resumeUrl}
+                    href={selectedFaculty.resumeUrl || '#'}
                     className="flex-1 py-3 rounded-xl font-bold bg-[#4a2c2a] hover:bg-[#5d3a37] text-white text-xs text-center shadow-md shadow-[#4a2c2a]/15 transition-all duration-300"
                   >
                     Download Resume (PDF)
